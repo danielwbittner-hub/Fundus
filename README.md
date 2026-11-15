@@ -10,6 +10,10 @@ Scans, IDML/InDesign-Text und Office-Dokumenten. So entsteht ein visueller, durc
 
 > Rein lokal. Kein Konto, kein Server, keine Telemetrie. Alles bleibt auf dem Mac.
 
+<p align="center"><img src="docs/screenshot.png" alt="Fundus – Beispielansicht der Leinwand" width="900"></p>
+
+<p align="center"><sub>Beispielansicht mit Platzhalter-Inhalten.</sub></p>
+
 ---
 
 ## Funktionen

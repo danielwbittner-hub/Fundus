@@ -1,0 +1,239 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1221"/>
+      <stop offset="0.5" stop-color="#0f1730"/>
+      <stop offset="1" stop-color="#0a0d1c"/>
+    </linearGradient>
+    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2ee6f0"/>
+      <stop offset="0.5" stop-color="#8a6bff"/>
+      <stop offset="1" stop-color="#e14af0"/>
+    </linearGradient>
+    <linearGradient id="foto" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8a24c"/>
+      <stop offset="0.5" stop-color="#c76b4a"/>
+      <stop offset="1" stop-color="#7a4b8f"/>
+    </linearGradient>
+    <linearGradient id="linkbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2ee6f0" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#2ee6f0" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="dots" width="42" height="42" patternUnits="userSpaceOnUse">
+      <circle cx="21" cy="21" r="1.5" fill="#8096ff" opacity="0.10"/>
+    </pattern>
+  </defs>
+
+  <!-- Hintergrund -->
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <rect width="1600" height="1000" fill="url(#dots)"/>
+
+  <!-- ================= Canvas-Inhalt ================= -->
+
+  <!-- Überschrift (Textfeld) -->
+  <text x="556" y="188" font-size="46" font-weight="800" fill="#8fe6ad">Herbst-Kampagne 2026</text>
+  <text x="250" y="250" font-size="22" font-weight="700" fill="#b9a9ff">Launch · KW 44</text>
+
+  <!-- Verbindungslinien (hinter den Karten) -->
+  <g fill="none" stroke="#2ee6f0" stroke-width="2.5" stroke-linecap="round" opacity="0.8">
+    <path d="M 420 440 C 520 440, 560 330, 690 330"/>
+    <path d="M 905 380 C 760 380, 690 540, 560 540"/>
+    <path d="M 420 700 C 560 700, 620 560, 700 560"/>
+  </g>
+  <g fill="#2ee6f0" opacity="0.92">
+    <path d="M 690 330 l -13 -6 l 0 12 z"/>
+    <path d="M 560 540 l 13 -6 l 0 12 z"/>
+    <path d="M 700 560 l -13 -6 l 0 12 z"/>
+  </g>
+  <!-- Verbindungs-Beschriftung -->
+  <g transform="translate(600,372)">
+    <rect x="-34" y="-13" width="68" height="26" rx="13" fill="#121726" stroke="#2ee6f0" stroke-opacity="0.6"/>
+    <text x="0" y="4" font-size="12.5" font-weight="600" fill="#ffffff" text-anchor="middle">gehört zu</text>
+  </g>
+
+  <!-- Mappe „Entwürfe" -->
+  <g transform="translate(900,230)">
+    <rect x="0" y="0" width="470" height="300" rx="16" fill="#8a6bff" fill-opacity="0.10"
+          stroke="#8a6bff" stroke-opacity="0.55" stroke-width="1.5" stroke-dasharray="7 6"/>
+    <path d="M 0 16 Q 0 0 16 0 L 454 0 Q 470 0 470 16 L 470 44 L 0 44 Z" fill="#121726" fill-opacity="0.95"/>
+    <path d="M 20 16 l 4 -4 l -8 0 z" fill="#8a6bff"/>
+    <rect x="34" y="14" width="16" height="13" rx="2.5" fill="#8a6bff"/>
+    <text x="60" y="27" font-size="14" font-weight="700" fill="#ffffff">Entwürfe</text>
+    <rect x="130" y="13" width="24" height="18" rx="9" fill="#8a6bff" fill-opacity="0.45"/>
+    <text x="142" y="27" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+
+    <!-- Karte: PDF-Flyer in der Mappe -->
+    <g transform="translate(40,70)">
+      <rect width="170" height="200" rx="12" fill="#1b2130"/>
+      <rect width="170" height="158" rx="12" fill="#eef1f6"/>
+      <rect x="0" y="146" width="170" height="12" fill="#eef1f6"/>
+      <!-- Mini-Flyer -->
+      <rect x="14" y="14" width="142" height="30" fill="#7a1f2a"/>
+      <text x="22" y="34" font-size="11" font-weight="800" fill="#ffffff">HERBST&#8211;SALE</text>
+      <rect x="14" y="50" width="142" height="62" fill="url(#foto)"/>
+      <rect x="14" y="118" width="110" height="7" rx="3" fill="#333a44"/>
+      <rect x="14" y="130" width="90" height="6" rx="3" fill="#8891a0"/>
+      <!-- Fuß -->
+      <g transform="translate(10,168)">
+        <path d="M0 2 h11 l3 3 v9 a2 2 0 0 1 -2 2 h-10 a2 2 0 0 1 -2 -2 v-10 a2 2 0 0 1 2 -2 z" fill="#8a6bff"/>
+        <text x="20" y="9" font-size="11.5" font-weight="700" fill="#e8eaf0">Plakat_A3.pdf</text>
+        <text x="20" y="24" font-size="9.5" fill="#9aa0b0">2,4 MB</text>
+      </g>
+    </g>
+
+    <!-- Karte: Bild in der Mappe -->
+    <g transform="translate(250,70)">
+      <rect width="170" height="200" rx="12" fill="#1b2130"/>
+      <rect width="170" height="158" rx="12" fill="#eef1f6"/>
+      <rect x="0" y="146" width="170" height="12" fill="#eef1f6"/>
+      <rect x="10" y="10" width="150" height="138" rx="4" fill="url(#foto)"/>
+      <circle cx="54" cy="52" r="16" fill="#ffe08a" opacity="0.9"/>
+      <path d="M18 120 L60 78 L92 104 L120 80 L152 110 L152 148 L18 148 Z" fill="#5a3f36" opacity="0.55"/>
+      <g transform="translate(10,168)">
+        <rect x="0" y="2" width="14" height="14" rx="2.5" fill="#2ee6f0"/>
+        <text x="20" y="9" font-size="11.5" font-weight="700" fill="#e8eaf0">Herbstmotiv.jpg</text>
+        <text x="20" y="24" font-size="9.5" fill="#9aa0b0">1,1 MB</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Karte: PDF (frei) -->
+  <g transform="translate(300,360)">
+    <rect width="170" height="228" rx="12" fill="#1b2130" stroke="#2ee6f0" stroke-opacity="0.9" stroke-width="2"/>
+    <rect width="170" height="158" rx="12" fill="#eef1f6"/>
+    <rect x="0" y="146" width="170" height="12" fill="#eef1f6"/>
+    <rect x="16" y="16" width="138" height="9" rx="2" fill="#2a3340"/>
+    <rect x="16" y="34" width="138" height="5" rx="2" fill="#9aa5b4"/>
+    <rect x="16" y="45" width="120" height="5" rx="2" fill="#9aa5b4"/>
+    <rect x="16" y="56" width="138" height="5" rx="2" fill="#9aa5b4"/>
+    <rect x="16" y="74" width="138" height="40" rx="3" fill="#d7dce6"/>
+    <rect x="16" y="122" width="100" height="5" rx="2" fill="#9aa5b4"/>
+    <g transform="translate(10,168)">
+      <path d="M0 2 h11 l3 3 v9 a2 2 0 0 1 -2 2 h-10 a2 2 0 0 1 -2 -2 v-10 a2 2 0 0 1 2 -2 z" fill="#8a6bff"/>
+      <text x="20" y="9" font-size="11.5" font-weight="700" fill="#e8eaf0">Konzept_v3.pdf</text>
+      <text x="20" y="24" font-size="9.5" fill="#9aa0b0">860 KB</text>
+    </g>
+    <!-- Tag-Chip -->
+    <g transform="translate(28,202)">
+      <rect width="52" height="15" rx="7.5" fill="#7486ff" fill-opacity="0.18"/>
+      <text x="26" y="11" font-size="9" font-weight="700" fill="#8fa0ff" text-anchor="middle">freigabe</text>
+    </g>
+  </g>
+
+  <!-- Karte: Website-Link (frei) -->
+  <g transform="translate(120,250)">
+    <rect width="212" height="96" rx="12" fill="#141b2a"/>
+    <rect width="212" height="96" rx="12" fill="url(#linkbg)"/>
+    <rect width="212" height="96" rx="12" fill="none" stroke="#2ee6f0" stroke-opacity="0.35"/>
+    <circle cx="22" cy="24" r="7" fill="none" stroke="#2ee6f0" stroke-width="1.4"/>
+    <path d="M15 24 h14 M22 17 v14 M17 20 q5 4 10 0 M17 28 q5 -4 10 0" stroke="#2ee6f0" stroke-width="1" fill="none"/>
+    <text x="38" y="28" font-size="11" fill="#9aa0b0">modehaus-beispiel.de</text>
+    <text x="18" y="56" font-size="13.5" font-weight="700" fill="#e8eaf0">Winteraktion &#8211; Landingpage</text>
+    <text x="18" y="78" font-size="10.5" fill="#9aa0b0">Angebote &amp; Öffnungszeiten prüfen</text>
+  </g>
+
+  <!-- Notizzettel (Post-it) -->
+  <g transform="translate(300,610)">
+    <rect width="190" height="120" rx="7" fill="#fbe7bf"/>
+    <rect width="190" height="120" rx="7" fill="none" stroke="#ffbd3d" stroke-opacity="0.6"/>
+    <text x="16" y="34" font-size="15" font-weight="600" fill="#2b2616">Freigabe bis Fr.</text>
+    <text x="16" y="58" font-size="15" font-weight="600" fill="#2b2616">beim Kunden</text>
+    <text x="16" y="82" font-size="15" font-weight="600" fill="#2b2616">einholen ✎</text>
+  </g>
+
+  <!-- Externer Finder-Ordner -->
+  <g transform="translate(700,470)">
+    <rect width="200" height="120" rx="12" fill="#1b2130"/>
+    <rect width="200" height="30" rx="12" fill="#ffbd3d" fill-opacity="0.16"/>
+    <rect x="12" y="8" width="16" height="13" rx="2.5" fill="#ffbd3d"/>
+    <text x="36" y="20" font-size="12.5" font-weight="700" fill="#e8eaf0">Bildmaterial</text>
+    <g font-size="10.5" fill="#c3c8d2">
+      <text x="14" y="52">📁 Motive_Herbst</text>
+      <text x="14" y="70">🖼 titel_final.tif</text>
+      <text x="14" y="88">🖼 banner_web.png</text>
+    </g>
+    <text x="14" y="110" font-size="9.5" fill="#9aa0b0">18 Objekte · Finder-Ordner</text>
+  </g>
+
+  <!-- ================= Schwebende Bedienung ================= -->
+
+  <!-- Reiter -->
+  <g transform="translate(24,22)">
+    <rect width="420" height="44" rx="14" fill="#121726" fill-opacity="0.95" stroke="#ffffff" stroke-opacity="0.12"/>
+    <rect x="10" y="9" width="96" height="26" rx="13" fill="url(#neon)"/>
+    <path d="M24 17 h10 v8 h-10 z M26 15 h10 v8 h-10 z" fill="#ffffff" fill-opacity="0.9"/>
+    <text x="46" y="26" font-size="13.5" font-weight="700" fill="#ffffff">Pinnwand</text>
+    <text x="124" y="26" font-size="13.5" fill="#c9ccd6">Kampagne</text>
+    <text x="214" y="26" font-size="13.5" fill="#c9ccd6">Ideen</text>
+    <rect x="270" y="12" width="22" height="20" rx="8" fill="#ffffff" fill-opacity="0.06"/>
+    <text x="281" y="26" font-size="14" font-weight="700" fill="#c9ccd6" text-anchor="middle">+</text>
+  </g>
+
+  <!-- Vertikale Werkzeugleiste -->
+  <g transform="translate(24,78)">
+    <rect width="46" height="196" rx="14" fill="#121726" fill-opacity="0.95" stroke="#ffffff" stroke-opacity="0.12"/>
+    <g fill="none" stroke="#c9ccd6" stroke-width="1.6">
+      <rect x="15" y="16" width="16" height="12" rx="2"/>
+      <g transform="translate(0,34)"><rect x="15" y="4" width="16" height="12" rx="2"/><line x1="18" y1="8" x2="28" y2="8"/><line x1="18" y1="12" x2="25" y2="12"/></g>
+      <circle cx="23" cy="78" r="7"/>
+      <g transform="translate(0,22)"><path d="M16 82 h8 l3 3 v7 h-14 v-10 z"/></g>
+      <rect x="15" y="130" width="16" height="12" rx="2" stroke-dasharray="3 2"/>
+      <path d="M17 166 q6 -8 12 0" transform="translate(0,-2)"/>
+    </g>
+    <line x1="12" y1="110" x2="34" y2="110" stroke="#ffffff" stroke-opacity="0.12"/>
+    <line x1="12" y1="150" x2="34" y2="150" stroke="#ffffff" stroke-opacity="0.12"/>
+  </g>
+
+  <!-- Suchleiste -->
+  <g transform="translate(1056,22)">
+    <rect width="520" height="44" rx="14" fill="#121726" fill-opacity="0.95" stroke="#ffffff" stroke-opacity="0.12"/>
+    <circle cx="26" cy="22" r="7" fill="none" stroke="#c9ccd6" stroke-width="1.6"/>
+    <line x1="31" y1="27" x2="36" y2="32" stroke="#c9ccd6" stroke-width="1.6"/>
+    <text x="48" y="27" font-size="13.5" fill="#c9ccd6">Durchsuchen &#8211; Name &amp; Inhalt (PDF, OCR, IDML, Ordner …)</text>
+    <line x1="452" y1="13" x2="452" y2="31" stroke="#ffffff" stroke-opacity="0.12"/>
+    <text x="468" y="27" font-size="12" font-weight="700" fill="#c9ccd6">12 Dok.</text>
+  </g>
+
+  <!-- Ansicht-/Zoomleiste -->
+  <g transform="translate(1330,78)">
+    <rect width="246" height="38" rx="14" fill="#121726" fill-opacity="0.95" stroke="#ffffff" stroke-opacity="0.12"/>
+    <text x="16" y="24" font-size="13" font-weight="700" fill="#c9ccd6">&#8722;</text>
+    <text x="40" y="23" font-size="11" font-weight="600" fill="#c9ccd6">100 %</text>
+    <text x="84" y="24" font-size="13" font-weight="700" fill="#c9ccd6">+</text>
+    <g stroke="#c9ccd6" stroke-width="1.5" fill="none">
+      <circle cx="122" cy="19" r="6"/><line x1="122" y1="13" x2="122" y2="19"/>
+      <path d="M150 12 a7 7 0 1 0 2 4" />
+      <rect x="176" y="13" width="13" height="12" rx="2"/>
+      <path d="M205 13 v6 h6 M206 24 a6 6 0 1 0 1 -9" transform="translate(-2,0)"/>
+      <rect x="226" y="13" width="12" height="11" rx="2"/>
+    </g>
+  </g>
+
+  <!-- Bereichs-Navigation (unten links) -->
+  <g transform="translate(24,762)">
+    <rect width="194" height="112" rx="14" fill="#121726" fill-opacity="0.95" stroke="#ffffff" stroke-opacity="0.12"/>
+    <rect x="14" y="14" width="13" height="11" rx="2" fill="none" stroke="#8a6bff" stroke-width="1.4"/>
+    <text x="34" y="24" font-size="12" font-weight="700" fill="#c9ccd6">Bereiche</text>
+    <text x="172" y="24" font-size="14" font-weight="700" fill="#c9ccd6">+</text>
+    <circle cx="24" cy="54" r="5" fill="#8a6bff"/>
+    <text x="38" y="58" font-size="12.5" font-weight="600" fill="#ffffff">Konzept</text>
+    <circle cx="24" cy="84" r="5" fill="#4cd985"/>
+    <text x="38" y="88" font-size="12.5" fill="#c9ccd6">Produktion</text>
+  </g>
+
+  <!-- Mini-Karte (unten rechts) -->
+  <g transform="translate(1376,788)">
+    <rect width="200" height="150" rx="13" fill="#121726" fill-opacity="0.95" stroke="#ffffff" stroke-opacity="0.12"/>
+    <rect x="14" y="12" width="14" height="11" rx="2" fill="none" stroke="#8a6bff" stroke-width="1.3"/>
+    <text x="34" y="22" font-size="11" font-weight="700" fill="#c9ccd6">Übersicht</text>
+    <rect x="12" y="32" width="176" height="104" rx="7" fill="#000000" fill-opacity="0.35"/>
+    <g>
+      <rect x="40" y="48" width="18" height="22" rx="2" fill="#7486ff"/>
+      <rect x="66" y="52" width="24" height="16" rx="2" fill="#2ee6f0" opacity="0.8"/>
+      <rect x="100" y="46" width="40" height="30" rx="2" fill="#8a6bff" opacity="0.55"/>
+      <rect x="54" y="92" width="20" height="14" rx="2" fill="#ffbd3d" opacity="0.8"/>
+      <rect x="88" y="96" width="26" height="12" rx="2" fill="#4cd985" opacity="0.7"/>
+      <rect x="30" y="40" width="120" height="76" rx="3" fill="none" stroke="#2ee6f0" stroke-width="1.5"/>
+    </g>
+  </g>
+</svg>
