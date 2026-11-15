@@ -14,6 +14,8 @@ Scans, IDML/InDesign-Text und Office-Dokumenten. So entsteht ein visueller, durc
 
 <p align="center"><sub>Beispielansicht mit Platzhalter-Inhalten.</sub></p>
 
+<p align="center"><a href="https://github.com/danielwbittner-hub/Fundus/releases/latest"><b>⬇ Neueste Version herunterladen (.dmg)</b></a></p>
+
 ---
 
 ## Funktionen
@@ -57,8 +59,9 @@ Scans, IDML/InDesign-Text und Office-Dokumenten. So entsteht ein visueller, durc
 
 ## Installation
 
-Fertige App: die neueste `Fundus-<Version>.dmg` öffnen, **Fundus** in den Programme-Ordner ziehen,
-starten. Beim ersten Start einen **Datenbank-Ordner** wählen – gern in einer Cloud (Nextcloud,
+Fertige App: die neueste `Fundus-<Version>.dmg` von der
+**[Releases-Seite](https://github.com/danielwbittner-hub/Fundus/releases/latest)** laden, öffnen,
+**Fundus** in den Programme-Ordner ziehen, starten. Beim ersten Start einen **Datenbank-Ordner** wählen – gern in einer Cloud (Nextcloud,
 iCloud Drive …), damit die Sammlung eine Neuinstallation übersteht. Dort legt Fundus `Fundus.db`
 samt Vorschau-Ordnern an; die Originaldateien bleiben, wo sie sind.
 
