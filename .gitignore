@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# Xcode / Build-Artefakte
+build/
+dist/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Von XcodeGen erzeugt – wird aus project.yml generiert (siehe README: `xcodegen generate`)
+Fundus.xcodeproj/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Diverses
+*.log
+*~

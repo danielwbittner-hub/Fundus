@@ -1,0 +1,76 @@
+# Fundus – nativer Dokumenten-Sammler mit Canvas
+#
+# Quelle des Xcode-Projekts. Nach Änderungen hier neu erzeugen:
+#   cd Fundus && xcodegen
+# Fundus.xcodeproj ist erzeugt – nicht von Hand ändern.
+#
+# Schnell bauen & laufen lassen:
+#   DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+#     xcodebuild -scheme Fundus -destination 'platform=macOS' \
+#     CODE_SIGNING_ALLOWED=NO build
+#
+# Verteilbare .dmg: ./build-dmg.command
+
+name: Fundus
+
+options:
+  bundleIdPrefix: de.dwbkd
+  createIntermediateGroups: true
+  developmentLanguage: de
+  deploymentTarget:
+    macOS: "14.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    # „Daniel Bittner (Personal Team)" – dieselbe kostenlose Apple-ID wie bei
+    # Tafel/KanbanMac. Andere Apple-ID: hier eintragen und xcodegen laufen lassen.
+    DEVELOPMENT_TEAM: UP525XB6FJ
+
+targets:
+  Fundus:
+    type: application
+    platform: macOS
+    scheme: {}
+    sources:
+      - path: Fundus
+    info:
+      path: Fundus/Info.plist
+      properties:
+        # Dock/Menüleiste zeigen den Kurznamen „FUNDUS"; die lange Form steht nur
+        # in der Fenster-Titelzeile (siehe Window(...) in FundusApp). Die .app-Datei
+        # bleibt „Fundus.app" (PRODUCT_NAME), nur der angezeigte Name ändert sich.
+        CFBundleName: FUNDUS
+        CFBundleDisplayName: FUNDUS
+        # Deutsch als Haupt-/Entwicklungssprache → Systemmenüs auf Deutsch.
+        CFBundleDevelopmentRegion: de
+        CFBundleLocalizations: [de, en]
+        LSMinimumSystemVersion: "14.0"
+        NSHumanReadableCopyright: "dwbkd"
+        # Rein lokal – kein Netz nötig.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+        # System-Dienst „An Fundus senden" (Finder-Rechtsklick → Dienste, Dienste-Menü).
+        NSServices:
+          - NSMenuItem:
+              default: "An Fundus senden"
+            NSMessage: anFundusSenden
+            NSPortName: FUNDUS
+            NSSendTypes:
+              - public.file-url
+              - public.url
+              - public.utf8-plain-text
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.dwbkd.fundus
+        PRODUCT_NAME: Fundus
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Ohne Sandbox: Die App referenziert beliebige Dateien per absolutem
+        # Pfad (kein Kopieren) und legt ihre Datenbank in einem frei gewählten
+        # Ordner (z. B. Nextcloud) ab. Hardened Runtime zunächst aus – für eine
+        # spätere Notarisierung nachziehbar.
+        ENABLE_HARDENED_RUNTIME: NO
+        ENABLE_APP_SANDBOX: NO
