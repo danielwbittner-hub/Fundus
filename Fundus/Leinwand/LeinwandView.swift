@@ -397,39 +397,73 @@ struct KarteAnsicht: View {
 
     private var linkAkzent: Color { Design.linkFarbe(hex: e.farbhex) }
 
+    /// Das hinterlegte Vorschaubild (og:image oder Icon) der Link-Karte.
+    private var linkVorschauBild: NSImage? {
+        guard let vo = app.vorschauOrdner, let v = e.vorschau else { return nil }
+        return VorschauCache.shared.bild(ordner: vo, name: v)
+    }
+    /// Echtes Vorschaubild (og:image) → als Kopfbild darstellen. Kleine Icons
+    /// (Favicon/apple-touch) bleiben als Mini-Symbol neben dem Host.
+    private var istBannerBild: Bool {
+        (e.vorschau ?? "").hasPrefix("linkbild") && linkVorschauBild != nil
+    }
+    private var bannerHoehe: CGFloat {
+        guard let b = linkVorschauBild, b.size.width > 0 else { return 90 }
+        return min(150, e.breite * min(b.size.height / b.size.width, 0.62))
+    }
+
     private var linkKarte: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 6) {
-                if let vo = app.vorschauOrdner, let v = e.vorschau,
-                   let bild = VorschauCache.shared.bild(ordner: vo, name: v) {
-                    Image(nsImage: bild).resizable().aspectRatio(contentMode: .fit)
-                        .frame(width: 15, height: 15)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                } else {
-                    Image(systemName: "globe").font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(linkAkzent)
+        VStack(alignment: .leading, spacing: 0) {
+            // Kopfbanner: Vorschaubild der Seite (randlos, auf Kartenbreite).
+            if istBannerBild, let bild = linkVorschauBild {
+                ZStack {
+                    Rectangle().fill(Color.black.opacity(0.28))
+                    Image(nsImage: bild)
+                        .resizable().aspectRatio(contentMode: .fit)   // ganzes Bild zeigen (auch Hochformat)
                 }
-                Text(e.webHost).font(Design.grotesk(10)).foregroundStyle(Design.gedaempft)
-                    .lineLimit(1).truncationMode(.middle)
-                Spacer(minLength: 0)
-                Image(systemName: "arrow.up.forward").font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(linkAkzent.opacity(0.8))
+                .frame(maxWidth: .infinity)
+                .frame(height: bannerHoehe)
+                .clipped()
+                .overlay(alignment: .bottom) {
+                    LinearGradient(colors: [.clear, .black.opacity(0.22)],
+                                   startPoint: .center, endPoint: .bottom)
+                }
             }
-            Text(e.name)
-                .font(Design.grotesk(CGFloat(app.szDateiname), gewicht: .semibold)).foregroundStyle(Design.tinte)
-                .lineLimit(2).truncationMode(.tail)
-                .fixedSize(horizontal: false, vertical: true)
-            if !e.kommentar.isEmpty {
-                Divider().overlay(linkAkzent.opacity(0.3))
-                Text(e.kommentar)
-                    .font(Design.grotesk(10.5)).foregroundStyle(Design.gedaempft)
-                    .lineLimit(3).truncationMode(.tail)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 6) {
+                    if !istBannerBild {
+                        if let bild = linkVorschauBild {
+                            Image(nsImage: bild).resizable().aspectRatio(contentMode: .fit)
+                                .frame(width: 15, height: 15)
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                        } else {
+                            Image(systemName: "globe").font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(linkAkzent)
+                        }
+                    }
+                    Text(e.webHost).font(Design.grotesk(10)).foregroundStyle(Design.gedaempft)
+                        .lineLimit(1).truncationMode(.middle)
+                    Spacer(minLength: 0)
+                    Image(systemName: "arrow.up.forward").font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(linkAkzent.opacity(0.8))
+                }
+                Text(e.name)
+                    .font(Design.grotesk(CGFloat(app.szDateiname), gewicht: .semibold)).foregroundStyle(Design.tinte)
+                    .lineLimit(2).truncationMode(.tail)
                     .fixedSize(horizontal: false, vertical: true)
+                if !e.kommentar.isEmpty {
+                    Divider().overlay(linkAkzent.opacity(0.3))
+                    Text(e.kommentar)
+                        .font(Design.grotesk(10.5)).foregroundStyle(Design.gedaempft)
+                        .lineLimit(3).truncationMode(.tail)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                if !e.tagListe.isEmpty { TagChips(tags: e.tagListe) }
             }
-            Spacer(minLength: 0)
-            if !e.tagListe.isEmpty { TagChips(tags: e.tagListe) }
+            .padding(.horizontal, 11).padding(.vertical, 10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(.horizontal, 11).padding(.vertical, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(LinearGradient(colors: [linkAkzent.opacity(0.18), linkAkzent.opacity(0.03)],
                                    startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -517,6 +551,7 @@ struct KarteAnsicht: View {
                 NSPasteboard.general.setString(e.pfad, forType: .string)
             }
             Button("Link bearbeiten…") { app.starteLinkBearbeiten(e.id) }
+            Button("Vorschau neu laden") { app.ladeLinkVorschauNeu(e.id) }
             Divider()
             Button("Entfernen", role: .destructive) { app.frageLoeschen(.karte(e.id)) }
         } else if e.istOrdnerRef {

@@ -545,17 +545,47 @@ final class AppModell: ObservableObject {
 
     /// Titel + Favicon einer Website im Hintergrund nachladen (nur vom Nutzer
     /// eingegebene Adressen). Favicon wird als Karten-Vorschau gesetzt.
+    /// Vorschau (og:image, sonst Icon/Favicon) + Titel einer Website nachladen.
+    func ladeLinkVorschauNeu(_ id: Int) {
+        guard let e = eintraege.first(where: { $0.id == id }), e.istWeblink else { return }
+        holeWebMeta(id, adresse: e.pfad, autoTitel: false)
+    }
+
     private func holeWebMeta(_ id: Int, adresse: String, autoTitel: Bool) {
         guard let vo = vorschauOrdner else { return }
         Task.detached(priority: .utility) {
-            let (titel, favicon) = await WebErfassung.lade(adresse)
+            let (titel, bildDaten, banner) = await WebErfassung.lade(adresse)
             if autoTitel, let t = titel, !t.isEmpty { await self.setzeWeblinkTitel(id, t) }
-            if let data = favicon, let bild = NSImage(data: data),
+            if let data = bildDaten, let bild = NSImage(data: data),
                let tiff = bild.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
                let png = rep.representation(using: .png, properties: [:]) {
-                let name = "favicon-\(id).png"
+                // Eindeutiger Name je nach Art – damit Icon↔Banner beim Neuladen sicher wechselt.
+                // „linkbild-" = echtes Vorschaubild (og:image), „favicon-" = kleines Icon.
+                let name = (banner ? "linkbild-" : "favicon-") + "\(id).png"
                 try? png.write(to: vo.appendingPathComponent(name))
-                await self.setzeFavicon(id, name)
+                let w = Double(rep.pixelsWide), h = Double(rep.pixelsHigh)
+                await self.setzeLinkVorschau(id, name, banner: banner, bildB: w, bildH: h)
+            }
+        }
+    }
+
+    /// Vorschaubild einer Link-Karte setzen; bei einem Banner die Karte bei Bedarf
+    /// höher ziehen, damit das Kopfbild Platz hat.
+    private func setzeLinkVorschau(_ id: Int, _ name: String, banner: Bool, bildB: Double, bildH: Double) {
+        VorschauCache.shared.verwerfe(name: name)
+        guard let i = eintraege.firstIndex(where: { $0.id == id }) else { return }
+        eintraege[i].vorschau = name
+        Task { await ablage?.setzeVorschau(id, name) }
+        if banner, bildB > 0 {
+            let breite = eintraege[i].breite
+            // Hochformat-Bilder nicht unbegrenzt hoch werden lassen (Seitenverhältnis deckeln).
+            let bannerH = min(150.0, breite * min(bildH / bildB, 0.62))
+            let textH: Double = eintraege[i].kommentar.isEmpty ? 80 : 120
+            let soll = bannerH + textH
+            if eintraege[i].hoehe < soll {
+                eintraege[i].hoehe = soll
+                let e = eintraege[i]
+                Task { await ablage?.setzeGroesse(id, breite: e.breite, hoehe: e.hoehe) }
             }
         }
     }

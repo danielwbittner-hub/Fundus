@@ -5,20 +5,27 @@ import AppKit
 /// Hintergrund; bricht großzügig ab, wenn etwas nicht klappt.
 enum WebErfassung {
 
-    static func lade(_ adresse: String) async -> (titel: String?, favicon: Data?) {
-        guard let url = URL(string: adresse), let host = url.host else { return (nil, nil) }
+    /// Titel + ein Vorschaubild einer Website. `banner` = true, wenn ein echtes
+    /// Vorschaubild (og:image/twitter:image) gefunden wurde (groß, als Kopfbild
+    /// darstellbar); false, wenn nur ein kleines Icon (apple-touch/favicon) blieb.
+    static func lade(_ adresse: String) async -> (titel: String?, vorschau: Data?, banner: Bool) {
+        guard let url = URL(string: adresse), let host = url.host else { return (nil, nil, false) }
         guard let html = await hole(url) else {
-            // Trotzdem Standard-Favicon versuchen.
             let fav = await holeDaten(URL(string: "\(url.scheme ?? "https")://\(host)/favicon.ico"))
-            return (nil, fav)
+            return (nil, fav, false)
         }
         let titel = extrahiereTitel(html)
-        let favURL = faviconAdresse(html, basis: url)
-        var favicon = await holeDaten(favURL)
-        if favicon == nil {
-            favicon = await holeDaten(URL(string: "\(url.scheme ?? "https")://\(host)/favicon.ico"))
+        // 1) Bevorzugt ein großes Vorschaubild (Open Graph / Twitter Card).
+        if let bildURL = bildAdresse(html, basis: url), let daten = await holeDaten(bildURL) {
+            return (titel, daten, true)
         }
-        return (titel, favicon)
+        // 2) Sonst ein möglichst großes Icon: apple-touch-icon, dann favicon.
+        let iconURL = appleIconAdresse(html, basis: url) ?? faviconAdresse(html, basis: url)
+        var icon = await holeDaten(iconURL)
+        if icon == nil {
+            icon = await holeDaten(URL(string: "\(url.scheme ?? "https")://\(host)/favicon.ico"))
+        }
+        return (titel, icon, false)
     }
 
     /// Prüft, ob eine Adresse erreichbar ist (für den Gesundheits-Check). Erst
@@ -77,7 +84,7 @@ enum WebErfassung {
 
     private static func holeDaten(_ url: URL?) async -> Data? {
         guard let url, istWeb(url),
-              let (data, resp) = await holeBegrenzt(anfrage(url), maxBytes: 2_000_000),
+              let (data, resp) = await holeBegrenzt(anfrage(url), maxBytes: 5_000_000),
               (resp.map { (200..<400).contains($0.statusCode) }) ?? true,
               !data.isEmpty
         else { return nil }
@@ -94,6 +101,48 @@ enum WebErfassung {
         t = t.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
         t = entschluessle(t).trimmingCharacters(in: .whitespacesAndNewlines)
         return t.isEmpty ? nil : t
+    }
+
+    /// Inhalt eines `<meta>`-Tags für einen der Schlüssel (property ODER name),
+    /// egal in welcher Reihenfolge content/property stehen.
+    private static func metaInhalt(_ html: String, schluessel: [String]) -> String? {
+        for key in schluessel {
+            let k = NSRegularExpression.escapedPattern(for: key)
+            let muster = [
+                "<meta[^>]+(?:property|name)=[\"']\(k)[\"'][^>]*content=[\"']([^\"']+)[\"']",
+                "<meta[^>]+content=[\"']([^\"']+)[\"'][^>]*(?:property|name)=[\"']\(k)[\"']"
+            ]
+            for m in muster {
+                guard let r = html.range(of: m, options: [.regularExpression, .caseInsensitive]) else { continue }
+                let tag = String(html[r])
+                guard let cr = tag.range(of: "content=[\"']([^\"']+)[\"']",
+                                         options: [.regularExpression, .caseInsensitive]) else { continue }
+                var c = String(tag[cr]).replacingOccurrences(of: "content=", with: "", options: .caseInsensitive)
+                c = c.trimmingCharacters(in: CharacterSet(charactersIn: "\"' "))
+                let s = entschluessle(c).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !s.isEmpty { return s }
+            }
+        }
+        return nil
+    }
+
+    /// Großes Vorschaubild der Seite (og:image / twitter:image).
+    private static func bildAdresse(_ html: String, basis: URL) -> URL? {
+        guard let s = metaInhalt(html, schluessel:
+            ["og:image", "og:image:url", "og:image:secure_url", "twitter:image", "twitter:image:src"]) else { return nil }
+        return URL(string: s, relativeTo: basis)?.absoluteURL
+    }
+
+    /// apple-touch-icon (meist 180×180) – schöneres Icon als favicon.
+    private static func appleIconAdresse(_ html: String, basis: URL) -> URL? {
+        let muster = "<link[^>]+rel=[\"'][^\"']*apple-touch-icon[^\"']*[\"'][^>]*>"
+        guard let r = html.range(of: muster, options: [.regularExpression, .caseInsensitive]) else { return nil }
+        let tag = String(html[r])
+        guard let hr = tag.range(of: "href=[\"']([^\"']+)[\"']",
+                                 options: [.regularExpression, .caseInsensitive]) else { return nil }
+        var href = String(tag[hr]).replacingOccurrences(of: "href=", with: "", options: .caseInsensitive)
+        href = href.trimmingCharacters(in: CharacterSet(charactersIn: "\"' "))
+        return URL(string: href, relativeTo: basis)?.absoluteURL
     }
 
     private static func faviconAdresse(_ html: String, basis: URL) -> URL? {
