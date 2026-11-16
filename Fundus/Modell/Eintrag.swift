@@ -175,6 +175,14 @@ struct Rahmen: Identifiable, Equatable {
     var reihenfolge: Int
 }
 
+/// Formatierungsbefehl für den Notiz-Editor (Markdown-basiert).
+enum NotizFormat: Equatable {
+    case fett        // **…**
+    case kursiv      // *…*
+    case liste       // „- " vor die Zeile
+    case checkliste  // „- [ ] " vor die Zeile
+}
+
 /// Was gerade ausgewählt ist (für Skalierung und Backspace-Löschen).
 enum Auswahl: Equatable, Hashable {
     case karte(Int)

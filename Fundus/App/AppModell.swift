@@ -19,7 +19,7 @@ final class AppModell: ObservableObject {
     @Published var optionAktiv = false             // ⌥ gedrückt → Bereichsrahmen verschiebbar
     @Published var spaceAktiv = false              // Leertaste gedrückt → Leinwand schwenken (statt Rahmenauswahl)
     var spaceGezogen = false                       // wurde während des Haltens geschwenkt? (unterdrückt QuickLook)
-    var leinwandGroesse: CGSize = .zero            // sichtbare Leinwandfläche (fürs Zentrieren)
+    @Published var leinwandGroesse: CGSize = .zero // sichtbare Leinwandfläche (fürs Zentrieren + Mini-Karte)
     var mausPunkt: CGPoint = .zero                 // Cursor in Leinwand-Ansichtskoordinaten (⌘+Scroll-Zoom)
     @Published var verbindenModus = false      // „Verbinden"-Werkzeug aktiv
     @Published var verbindeVon: Auswahl? = nil  // erstes gewähltes Element
@@ -42,10 +42,14 @@ final class AppModell: ObservableObject {
     @Published var loeschKandidat: Auswahl? = nil
     @Published var loeschMehrere = false              // Backspace bei Mehrfachauswahl
     @Published var fokusNotiz: Int? = nil             // neu erstellte Notiz → sofort in Bearbeitung
+    @Published var notizFormat: NotizFormat? = nil    // Formatierungsbefehl an den aktiven Notiz-Editor
+    @Published var notizBearbeiten: Int? = nil        // Notiz, die in den Bearbeiten-Modus soll
     @Published var kannUndo = false
     @Published var kannRedo = false
 
     @Published var zeigeKuerzel = false               // Tastaturbefehl-Übersicht
+    @Published var zeigeHilfe = false                 // Hilfe/Anleitung (Menü „Hilfe")
+    @Published var zeigeHaftung = false               // Haftungsausschluss beim ersten Start
     @Published var zeigeReparatur = false             // Panel für defekte Verknüpfungen
     @Published var zeigeGesundheit = false            // Gesundheits-Check (Dubletten, tote Links, fehlende Dateien)
     @Published var gesundheit: GesundheitsBericht?    // Ergebnis des Checks
@@ -80,6 +84,39 @@ final class AppModell: ObservableObject {
     @Published var schwenk: CGSize = .zero
     @Published var zeigeMiniKarte: Bool = UserDefaults.standard.object(forKey: "zeigeMiniKarte") as? Bool ?? true {
         didSet { UserDefaults.standard.set(zeigeMiniKarte, forKey: "zeigeMiniKarte") }
+    }
+
+    // MARK: Schriftgrößen (individuell einstellbar, in Einstellungen)
+
+    /// Default aus UserDefaults lesen (0 = nicht gesetzt → Standardwert).
+    private static func gelesen(_ key: String, _ std: Double) -> Double {
+        let v = UserDefaults.standard.double(forKey: key)
+        return v > 0 ? v : std
+    }
+    @Published var szText: Double = AppModell.gelesen("szText", 16) {
+        didSet { UserDefaults.standard.set(szText, forKey: "szText") } }
+    @Published var szH1: Double = AppModell.gelesen("szH1", 34) {
+        didSet { UserDefaults.standard.set(szH1, forKey: "szH1") } }
+    @Published var szH2: Double = AppModell.gelesen("szH2", 24) {
+        didSet { UserDefaults.standard.set(szH2, forKey: "szH2") } }
+    @Published var szH3: Double = AppModell.gelesen("szH3", 19) {
+        didSet { UserDefaults.standard.set(szH3, forKey: "szH3") } }
+    @Published var szOrdnerTitel: Double = AppModell.gelesen("szOrdnerTitel", 12.5) {
+        didSet { UserDefaults.standard.set(szOrdnerTitel, forKey: "szOrdnerTitel") } }
+    @Published var szDateiname: Double = AppModell.gelesen("szDateiname", 12.5) {
+        didSet { UserDefaults.standard.set(szDateiname, forKey: "szDateiname") } }
+    @Published var szOrdnerInhalt: Double = AppModell.gelesen("szOrdnerInhalt", 10.5) {
+        didSet { UserDefaults.standard.set(szOrdnerInhalt, forKey: "szOrdnerInhalt") } }
+
+    /// Schriftgröße eines Notiz-Stils (0=Text, 1=H2, 2=H1, 3=H3 – historische Nummern).
+    func notizGroesse(_ stil: Int) -> Double {
+        switch stil { case 3: return szH3; case 2: return szH1; case 1: return szH2; default: return szText }
+    }
+
+    /// Alle Schriftgrößen auf die Standardwerte zurücksetzen.
+    func schriftgroessenZuruecksetzen() {
+        szText = 16; szH1 = 34; szH2 = 24; szH3 = 19
+        szOrdnerTitel = 12.5; szDateiname = 12.5; szOrdnerInhalt = 10.5
     }
 
     enum Erscheinung: String, CaseIterable, Identifiable {
@@ -136,7 +173,59 @@ final class AppModell: ObservableObject {
         if let bp = d.string(forKey: "backupOrt") {
             backupOrt = URL(fileURLWithPath: bp, isDirectory: true)
         }
+        // Haftungsausschluss nur beim allerersten Start zeigen.
+        if !d.bool(forKey: "haftungBestaetigt") { zeigeHaftung = true }
         AppModell.shared = self
+    }
+
+    /// „Verstanden" im Haftungsausschluss – Hinweis künftig nicht mehr zeigen.
+    func bestaetigeHaftung() {
+        UserDefaults.standard.set(true, forKey: "haftungBestaetigt")
+        zeigeHaftung = false
+    }
+
+    /// Standard-„Über"-Fenster mit Website + Name.
+    func zeigeUeber() {
+        let p = NSMutableParagraphStyle(); p.alignment = .center
+        let s = NSMutableAttributedString()
+        s.append(NSAttributedString(string: "Dokumente sammeln, verknüpfen und freigeben.\n\n",
+            attributes: [.font: NSFont.systemFont(ofSize: 11),
+                         .foregroundColor: NSColor.secondaryLabelColor, .paragraphStyle: p]))
+        s.append(NSAttributedString(string: "www.dwbkd.de",
+            attributes: [.link: URL(string: "https://www.dwbkd.de")!,
+                         .font: NSFont.systemFont(ofSize: 11, weight: .semibold), .paragraphStyle: p]))
+        s.append(NSAttributedString(string: "  ·  Daniel W. Bittner",
+            attributes: [.font: NSFont.systemFont(ofSize: 11),
+                         .foregroundColor: NSColor.labelColor, .paragraphStyle: p]))
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(options: [.credits: s])
+    }
+
+    // MARK: Duplizieren (⌥ + ziehen lässt eine Kopie am Ausgangsort zurück)
+
+    /// Legt eine Kopie der Karte am aktuellen Ort ab (das Original wird danach
+    /// weggezogen). Wird vom ⌥-Ziehen genutzt.
+    func dupliziereKarteAnOrt(_ id: Int) {
+        guard let ablage, let e = eintraege.first(where: { $0.id == id }) else { return }
+        let board = aktivBoard
+        Task {
+            guard let neuId = await ablage.dupliziereEintrag(e, board: board, x: e.x, y: e.y) else { return }
+            var kopie = e
+            kopie.id = neuId
+            eintraege.append(kopie)
+        }
+    }
+
+    /// Legt eine Kopie des Textfelds/Zettels am aktuellen Ort ab (⌥-Ziehen).
+    func dupliziereNotizAnOrt(_ id: Int) {
+        guard let ablage, let n = notizen.first(where: { $0.id == id }) else { return }
+        let board = aktivBoard
+        Task {
+            guard let neuId = await ablage.dupliziereNotiz(n, board: board, x: n.x, y: n.y) else { return }
+            var kopie = n
+            kopie.id = neuId
+            notizen.append(kopie)
+        }
     }
 
     // MARK: Datenbank öffnen / Ort wählen
@@ -886,6 +975,48 @@ final class AppModell: ObservableObject {
         if let i = notizen.firstIndex(where: { $0.id == id }) { notizen[i].text = text }
         Task { await ablage.setzeNotizText(id, text) }
     }
+
+    /// Ein einzelnes Element aus einem referenzierten Finder-Ordner öffnen
+    /// (`reveal`=false) oder im Finder zeigen/auswählen (`reveal`=true).
+    func oeffneOrdnerKind(_ e: Eintrag, _ kind: OrdnerInhalt.Eintrag, reveal: Bool) {
+        guard e.istOrdnerRef else { return }
+        let url = e.url.appendingPathComponent(kind.name)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            exportMeldung = "„\(kind.name)“ wurde nicht gefunden (verschoben?)."
+            return
+        }
+        if reveal { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+        else { NSWorkspace.shared.open(url) }
+    }
+
+    /// Formatierungsbefehl auslösen: die gewählte Notiz in den Bearbeiten-Modus
+    /// bringen (falls nötig) und den Befehl an ihren Editor reichen.
+    func formatiereNotiz(_ f: NotizFormat) {
+        guard case let .notiz(id)? = auswahl else { return }
+        notizBearbeiten = id
+        notizFormat = f
+    }
+
+    /// Checklisten-Zeile (per Antippen) ab-/anhaken – schreibt `- [ ]` ⇄ `- [x]`.
+    func toggleNotizCheckliste(_ id: Int, zeile index: Int) {
+        guard let i = notizen.firstIndex(where: { $0.id == id }) else { return }
+        var zeilen = notizen[i].text.components(separatedBy: "\n")
+        guard index >= 0, index < zeilen.count else { return }
+        let z = zeilen[index]
+        if let r = z.range(of: #"^(\s*)-\s\[( |x|X)\]\s"#, options: .regularExpression) {
+            let marke = z[r]
+            if marke.contains("[ ]") {
+                zeilen[index] = z.replacingCharacters(in: r, with: marke.replacingOccurrences(of: "[ ]", with: "[x]"))
+            } else {
+                zeilen[index] = z.replacingCharacters(in: r,
+                    with: marke.replacingOccurrences(of: "[x]", with: "[ ]").replacingOccurrences(of: "[X]", with: "[ ]"))
+            }
+            let neu = zeilen.joined(separator: "\n")
+            merke()
+            notizen[i].text = neu
+            Task { await ablage?.setzeNotizText(id, neu) }
+        }
+    }
     func setzeNotizGroesse(_ id: Int, _ groesse: Double) {
         guard let ablage else { return }
         if let i = notizen.firstIndex(where: { $0.id == id }) { notizen[i].groesse = groesse }
@@ -901,8 +1032,9 @@ final class AppModell: ObservableObject {
         merke()
         notizen[i].stil = stil
         // Höhe/Breite mitwachsen lassen, damit die Überschrift nicht abschneidet.
-        let minH: Double = stil == 2 ? 70 : (stil == 1 ? 54 : 0)
-        let minB: Double = stil == 2 ? 240 : (stil == 1 ? 200 : 0)
+        // (stil: 0=Text, 1=H2, 2=H1, 3=H3)
+        let minH: Double = stil == 2 ? 70 : (stil == 1 ? 54 : (stil == 3 ? 46 : 0))
+        let minB: Double = stil == 2 ? 240 : (stil == 1 ? 200 : (stil == 3 ? 180 : 0))
         var rahmenGeaendert = false
         if notizen[i].hoehe < minH { notizen[i].hoehe = minH; rahmenGeaendert = true }
         if notizen[i].breite < minB { notizen[i].breite = minB; rahmenGeaendert = true }

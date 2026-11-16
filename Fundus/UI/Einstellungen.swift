@@ -92,6 +92,19 @@ struct EinstellungenView: View {
                      + "Bedien-Paneele bleiben dunkel. „System“ folgt dem Mac.")
                     .font(Design.grotesk(11)).foregroundStyle(Design.gedaempft)
             }
+            Section("Schriftgrößen") {
+                groesseZeile("Textfeld – Text", $app.szText, 10...48)
+                groesseZeile("Textfeld – Überschrift H1", $app.szH1, 14...80)
+                groesseZeile("Textfeld – Überschrift H2", $app.szH2, 12...64)
+                groesseZeile("Textfeld – Überschrift H3", $app.szH3, 11...56)
+                groesseZeile("Ordner-/Mappentitel", $app.szOrdnerTitel, 8...28)
+                groesseZeile("Dateiname", $app.szDateiname, 8...28)
+                groesseZeile("Ordnerinhalt / Pfade", $app.szOrdnerInhalt, 7...22)
+                Button("Auf Standard zurücksetzen") { app.schriftgroessenZuruecksetzen() }
+                Text("Gilt für alle Leinwände – Notiz-Überschriften H1–H3 und Text sowie die "
+                     + "Beschriftungen auf Karten und Mappen lassen sich einzeln festlegen.")
+                    .font(Design.grotesk(11)).foregroundStyle(Design.gedaempft)
+            }
             Section("Indizierung") {
                 Toggle("Gescannte PDFs und Bilder per Texterkennung (OCR) durchsuchbar machen",
                        isOn: $app.ocrAktiv)
@@ -135,6 +148,17 @@ struct EinstellungenView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 520, height: 540)
+        .frame(width: 520, height: 600)
+    }
+
+    /// Eine Schriftgrößen-Zeile mit Stepper und Punkt-Anzeige.
+    private func groesseZeile(_ titel: String, _ wert: Binding<Double>,
+                             _ bereich: ClosedRange<Double>) -> some View {
+        Stepper(value: wert, in: bereich, step: 0.5) {
+            LabeledContent(titel) {
+                Text(String(format: "%.1f pt", wert.wrappedValue))
+                    .font(Design.grotesk(11, gewicht: .medium)).foregroundStyle(Design.gedaempft)
+            }
+        }
     }
 }

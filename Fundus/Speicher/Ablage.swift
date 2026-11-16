@@ -240,6 +240,28 @@ actor Ablage {
                        idmlQuelle: nil, zustand: "ok", ordnerID: nil, kommentar: kommentar)
     }
 
+    /// Dupliziert eine einzelne Karte an Position (x,y) auf demselben Board –
+    /// kopiert alle Eigenschaften inkl. Volltext-Index. Gibt die neue ID zurück.
+    func dupliziereEintrag(_ e: Eintrag, board: Int, x: Double, y: Double) -> Int? {
+        let jetzt = Date().timeIntervalSince1970
+        let ok = db.schreibe("""
+            INSERT INTO eintrag(board_id,pfad,name,endung,kategorie,groesse,erstellt,x,y,breite,hoehe,vorschau,idml_quelle,zustand,ordner_id,kommentar,tags,lesezeichen,farbe,farbhex,symbol)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, [.ganz(board), .text(e.pfad), .text(e.name), .text(e.endung), .text(e.kategorie.rawValue),
+              .ganz(e.groesse), .komma(jetzt), .komma(x), .komma(y), .komma(e.breite), .komma(e.hoehe),
+              e.vorschau.map { Datenbank.Wert.text($0) } ?? .leer,
+              e.idmlQuelle.map { Datenbank.Wert.text($0) } ?? .leer, .text(e.zustand),
+              e.ordnerID.map { Datenbank.Wert.ganz($0) } ?? .leer,
+              .text(e.kommentar), .text(e.tags),
+              e.lesezeichen.map { Datenbank.Wert.text($0) } ?? .leer,
+              .ganz(e.farbe), e.farbhex.map { Datenbank.Wert.text($0) } ?? .leer, .text(e.symbol)])
+        guard ok else { return nil }
+        let neu = db.letzteID
+        db.schreibe("INSERT INTO volltext(rowid,name,inhalt) SELECT ?,name,inhalt FROM volltext WHERE rowid=?",
+                    [.ganz(neu), .ganz(e.id)])
+        return neu
+    }
+
     /// Titel/Adresse/Kommentar eines bestehenden Weblinks ändern.
     func aktualisiereWeblink(_ id: Int, adresse: String, titel: String, kommentar: String) {
         db.schreibe("UPDATE eintrag SET pfad=?,name=?,kommentar=? WHERE id=?",
@@ -442,6 +464,21 @@ actor Ablage {
         guard ok else { return nil }
         return Notiz(id: db.letzteID, text: "", x: x, y: y, breite: breite, hoehe: hoehe,
                      groesse: 15, farbe: farbe, stil: 0, farbhex: nil, ordnerID: nil, zettel: zettel)
+    }
+
+    /// Dupliziert ein Textfeld/einen Zettel an Position (x,y). Gibt die neue ID zurück.
+    func dupliziereNotiz(_ n: Notiz, board: Int, x: Double, y: Double) -> Int? {
+        let jetzt = Date().timeIntervalSince1970
+        let ok = db.schreibe("""
+            INSERT INTO notiz(board_id,text,x,y,breite,hoehe,groesse,farbe,stil,farbhex,ordner_id,zettel,symbol,erstellt)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, [.ganz(board), .text(n.text), .komma(x), .komma(y), .komma(n.breite), .komma(n.hoehe),
+              .komma(n.groesse), .ganz(n.farbe), .ganz(n.stil),
+              n.farbhex.map { Datenbank.Wert.text($0) } ?? .leer,
+              n.ordnerID.map { Datenbank.Wert.ganz($0) } ?? .leer,
+              .ganz(n.zettel ? 1 : 0), .text(n.symbol), .komma(jetzt)])
+        guard ok else { return nil }
+        return db.letzteID
     }
 
     func setzeNotizOrdner(_ id: Int, ordnerID: Int?) {

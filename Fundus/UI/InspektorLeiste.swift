@@ -24,12 +24,12 @@ struct InspektorLeiste: View {
     @ViewBuilder private func karteLeiste(_ id: Int) -> some View {
         if let e = app.eintraege.first(where: { $0.id == id }) {
             rahmen {
-                Image(systemName: "tag").font(.system(size: 12)).foregroundStyle(Design.neonCyan)
+                Image(systemName: "tag").font(.system(size: 13)).foregroundStyle(Design.neonCyan)
                 TagWerkstatt(id: id, tags: e.tagListe)
                 // Web-Links lassen sich zusätzlich einfärben.
                 if e.istWeblink {
                     teiler
-                    Image(systemName: "paintpalette").font(.system(size: 12)).foregroundStyle(Design.neonCyan)
+                    Image(systemName: "paintpalette").font(.system(size: 13)).foregroundStyle(Design.neonCyan)
                     FarbWahl(aktuell: Design.linkFarbe(hex: e.farbhex)) {
                         app.setzeKarteFarbhex(id, $0)
                     }
@@ -46,6 +46,8 @@ struct InspektorLeiste: View {
         if let n = app.notizen.first(where: { $0.id == id }) {
             rahmen {
                 StilWahl(stil: n.stil) { app.setzeNotizStil(id, $0) }
+                teiler
+                FormatWahl()
                 teiler
                 if n.zettel {
                     // Zettel: kräftige Füllfarbe (+ eigener Wähler).
@@ -72,7 +74,7 @@ struct InspektorLeiste: View {
     @ViewBuilder private func ordnerLeiste(_ id: Int) -> some View {
         if let o = app.ordnerListe.first(where: { $0.id == id }) {
             rahmen {
-                Text("Mappenfarbe").font(Design.grotesk(11, gewicht: .medium))
+                Text("Mappenfarbe").font(Design.grotesk(12, gewicht: .medium))
                     .foregroundStyle(Design.gedaempft)
                 teiler
                 FarbWahl(aktuell: Design.farbe(index: o.farbe, hex: o.farbhex)) {
@@ -113,7 +115,7 @@ struct FarbWahl: View {
             ForEach(Array(palette.enumerated()), id: \.offset) { _, c in
                 Circle()
                     .fill(c)
-                    .frame(width: 18, height: 18)
+                    .frame(width: 19, height: 19)
                     .overlay(Circle().strokeBorder(.white,
                         lineWidth: c.hexString == aktuell.hexString ? 2.5 : 0))
                     .overlay(Circle().strokeBorder(.black.opacity(0.25), lineWidth: 0.5))
@@ -143,7 +145,7 @@ struct OrdnenLeiste: View {
     var body: some View {
         HStack(spacing: 10) {
             Text("\(anzahl)")
-                .font(Design.grotesk(11, gewicht: .bold)).foregroundStyle(.white)
+                .font(Design.grotesk(12, gewicht: .bold)).foregroundStyle(.white)
                 .padding(.horizontal, 7).padding(.vertical, 3)
                 .background(Capsule().fill(Design.neon))
             knopf("rectangle.3.group", "In Mappe fassen") { app.markierungInMappe() }
@@ -179,8 +181,8 @@ struct OrdnenLeiste: View {
 
     private func knopf(_ symbol: String, _ titel: String, aus: Bool = false, _ aktion: @escaping () -> Void) -> some View {
         Button(action: aktion) {
-            Image(systemName: symbol).font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Design.paneelInhalt).frame(width: 28, height: 26)
+            Image(systemName: symbol).font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Design.paneelInhalt).frame(width: 30, height: 28)
         }
         .buttonStyle(.plain).disabled(aus).opacity(aus ? 0.35 : 1).help(titel)
     }
@@ -199,7 +201,7 @@ struct TagWerkstatt: View {
         HStack(spacing: 7) {
             ForEach(tags, id: \.self) { t in
                 HStack(spacing: 4) {
-                    Text(t).font(Design.grotesk(11.5, gewicht: .medium)).foregroundStyle(.white)
+                    Text(t).font(Design.grotesk(12.5, gewicht: .medium)).foregroundStyle(.white)
                         .onTapGesture { app.filtereNachTag(t) }
                     Button { app.entferneTag(id, t) } label: {
                         Image(systemName: "xmark").font(.system(size: 8, weight: .bold))
@@ -212,8 +214,8 @@ struct TagWerkstatt: View {
                 .help("Klick filtert nach „\(t)“ · ✕ entfernt")
             }
             TextField("+ Schlagwort", text: $entwurf)
-                .textFieldStyle(.plain).font(Design.grotesk(12))
-                .foregroundStyle(.white).frame(width: 96).focused($fokus)
+                .textFieldStyle(.plain).font(Design.grotesk(13))
+                .foregroundStyle(.white).frame(width: 100).focused($fokus)
                 .onSubmit(hinzufuegen)
         }
     }
@@ -251,7 +253,30 @@ struct TagChips: View {
     }
 }
 
-/// Überschriften-Stile H1 / H2 / Text.
+/// Formatierung für Notiztexte: Fett, Kursiv, Aufzählung, Checkliste.
+/// Setzt die Notiz in den Bearbeiten-Modus und reicht den Befehl an den Editor.
+struct FormatWahl: View {
+    @EnvironmentObject var app: AppModell
+
+    var body: some View {
+        HStack(spacing: 5) {
+            knopf("bold", "Fett  (**…**)", .fett)
+            knopf("italic", "Kursiv  (*…*)", .kursiv)
+            knopf("list.bullet", "Aufzählung", .liste)
+            knopf("checklist", "Checkliste zum Abhaken", .checkliste)
+        }
+    }
+
+    private func knopf(_ symbol: String, _ hilfe: String, _ f: NotizFormat) -> some View {
+        Button { app.formatiereNotiz(f) } label: {
+            Image(systemName: symbol).font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Design.paneelInhalt).frame(width: 26, height: 24)
+        }
+        .buttonStyle(.plain).help(hilfe)
+    }
+}
+
+/// Überschriften-Stile H1 / H2 / H3 / Text.
 struct StilWahl: View {
     let stil: Int
     let setzen: (Int) -> Void
@@ -260,6 +285,7 @@ struct StilWahl: View {
         HStack(spacing: 4) {
             knopf("H1", 2)
             knopf("H2", 1)
+            knopf("H3", 3)
             knopf("Text", 0)
         }
     }
@@ -267,7 +293,7 @@ struct StilWahl: View {
     private func knopf(_ titel: String, _ wert: Int) -> some View {
         Button { setzen(wert) } label: {
             Text(titel)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .padding(.horizontal, 10).padding(.vertical, 5)
                 .background(stil == wert ? AnyShapeStyle(Design.neon)
                                          : AnyShapeStyle(Color.white.opacity(0.08)),

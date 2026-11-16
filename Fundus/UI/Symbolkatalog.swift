@@ -100,16 +100,18 @@ enum Symbolkatalog {
 struct SymbolAbzeichen: View {
     let symbol: String
     let farbe: Color
-    var groesse: CGFloat = 22
+    var groesse: CGFloat = 26
 
     var body: some View {
         Image(systemName: symbol)
-            .font(.system(size: groesse * 0.52, weight: .semibold))
+            .font(.system(size: groesse * 0.54, weight: .bold))
             .foregroundStyle(.white)
+            .shadow(color: .black.opacity(0.45), radius: 1, y: 0.5)   // Glyph hebt sich auch auf hellen Farben ab
             .frame(width: groesse, height: groesse)
             .background(Circle().fill(farbe))
-            .overlay(Circle().strokeBorder(.white.opacity(0.55), lineWidth: 0.5))
-            .shadow(color: .black.opacity(0.35), radius: 2.5, y: 1)
+            .overlay(Circle().strokeBorder(.white.opacity(0.85), lineWidth: 1.2))
+            .overlay(Circle().strokeBorder(.black.opacity(0.22), lineWidth: 0.5).padding(-1))
+            .shadow(color: .black.opacity(0.4), radius: 3, y: 1.5)
     }
 }
 
@@ -123,9 +125,9 @@ struct SymbolSteuer: View {
     var body: some View {
         Button { offen = true } label: {
             Image(systemName: symbol.isEmpty ? "square.grid.2x2" : symbol)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(symbol.isEmpty ? Design.paneelInhalt : .white)
-                .frame(width: 24, height: 24)
+                .frame(width: 26, height: 26)
                 .background(Circle().fill(symbol.isEmpty
                     ? AnyShapeStyle(Color.white.opacity(0.08)) : AnyShapeStyle(farbe)))
                 .overlay(Circle().strokeBorder(.white.opacity(symbol.isEmpty ? 0.12 : 0.4), lineWidth: 0.5))
@@ -188,6 +190,9 @@ struct SymbolWaehler: View {
         }
         .padding(14)
         .frame(width: 322)
+        // Fester, voll deckender dunkler Grund: die Symbole sind im Katalog weiß –
+        // ohne dunklen Untergrund wären sie in der hellen App-Ansicht unsichtbar.
+        .background(Color(red: 0.07, green: 0.09, blue: 0.15))
     }
 
     private func raster(_ symbole: [Symbolkatalog.Eintrag]) -> some View {

@@ -52,6 +52,13 @@ struct FundusApp: App {
         .windowStyle(.titleBar)
         .commands {
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(replacing: .appInfo) {
+                Button("Über FUNDUS") { app.zeigeUeber() }
+            }
+            CommandGroup(replacing: .help) {
+                Button("FUNDUS-Hilfe") { app.zeigeHilfe = true }
+                    .keyboardShortcut("?", modifiers: .command)
+            }
             CommandMenu("Finden") {
                 Button("Schnell finden …") { app.oeffnePalette() }
                     .kuerzel(kuerzel.kuerzel(.schnellsuche))
@@ -118,6 +125,8 @@ struct Wurzel: View {
             for: NSApplication.willTerminateNotification)) { _ in app.beende() }
         .onReceive(NotificationCenter.default.publisher(
             for: NSApplication.didBecomeActiveNotification)) { _ in app.pruefeSicherung() }
+        .sheet(isPresented: $app.zeigeHaftung) { HaftungAnsicht().environmentObject(app) }
+        .sheet(isPresented: $app.zeigeHilfe) { HilfeAnsicht().environmentObject(app) }
     }
 }
 
@@ -338,6 +347,7 @@ struct HauptAnsicht: View {
 /// Zwischenräume lassen die Leinwand durch.
 struct Kopfleiste: View {
     @EnvironmentObject var app: AppModell
+    @FocusState private var suchFokus: Bool
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -371,7 +381,7 @@ struct Kopfleiste: View {
                 HStack(spacing: 7) {
                     ForEach(app.boards) { b in ReiterAnsicht(b: b) }
                     Button { app.neueLeinwand() } label: {
-                        Image(systemName: "plus").font(.system(size: 11, weight: .bold))
+                        Image(systemName: "plus").font(.system(size: 12, weight: .bold))
                             .padding(.horizontal, 9).padding(.vertical, 6)
                             .background(Capsule().fill(Color.white.opacity(0.06)))
                     }
@@ -421,6 +431,13 @@ struct Kopfleiste: View {
                     TextField("Durchsuchen – Name & Inhalt (PDF, OCR, IDML, Ordner …)", text: $app.suchtext)
                         .textFieldStyle(.plain).font(Design.grotesk(13.5))
                         .foregroundStyle(Design.paneelInhalt).frame(minWidth: 240)
+                        .focused($suchFokus)
+                        .onKeyPress(.escape) {
+                            // ESC: Suche leeren und das Feld verlassen.
+                            if !app.suchtext.isEmpty { app.suchtext = "" }
+                            suchFokus = false
+                            return .handled
+                        }
                     if !app.suchtext.isEmpty {
                         Button { app.suchtext = "" } label: {
                             Image(systemName: "xmark.circle.fill").foregroundStyle(Design.paneelInhalt)
@@ -478,18 +495,18 @@ struct Kopfleiste: View {
         glas {
             HStack(spacing: 2) {
                 Button { setzeZoom(app.zoom / 1.25) } label: {
-                    Image(systemName: "minus").frame(width: 24, height: 24)
+                    Image(systemName: "minus").frame(width: 26, height: 26)
                 }
                 Text("\(Int(app.zoom * 100)) %")
-                    .font(Design.grotesk(11, gewicht: .medium)).foregroundStyle(Design.paneelInhalt)
-                    .frame(width: 44)
+                    .font(Design.grotesk(12, gewicht: .medium)).foregroundStyle(Design.paneelInhalt)
+                    .frame(width: 46)
                 Button { setzeZoom(app.zoom * 1.25) } label: {
-                    Image(systemName: "plus").frame(width: 24, height: 24)
+                    Image(systemName: "plus").frame(width: 26, height: 26)
                 }
                 Button { setzeZoom(1); app.schwenk = .zero; app.sichereKamera() } label: {
-                    Image(systemName: "arrow.counterclockwise").frame(width: 24, height: 24)
+                    Image(systemName: "arrow.counterclockwise").frame(width: 26, height: 26)
                 }.help("Ansicht zurücksetzen")
-                Rectangle().fill(Design.rahmen).frame(width: 1, height: 16)
+                Rectangle().fill(Design.rahmen).frame(width: 1, height: 17)
                 Menu {
                     Button("Als Bild (PNG)") { app.exportiereLeinwand(alsPDF: false) }
                     Button("Als PDF") { app.exportiereLeinwand(alsPDF: true) }
@@ -500,24 +517,27 @@ struct Kopfleiste: View {
                     Divider()
                     Button("Drucken …") { app.druckeLeinwand() }
                 } label: {
-                    Image(systemName: "square.and.arrow.up").frame(width: 26, height: 24)
+                    Image(systemName: "square.and.arrow.up").frame(width: 28, height: 26)
                 }
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 .help("Leinwand exportieren / teilen")
                 Button { app.wechsleErscheinung() } label: {
-                    Image(systemName: app.istDunkel ? "sun.max" : "moon").frame(width: 26, height: 24)
+                    Image(systemName: app.istDunkel ? "sun.max" : "moon").frame(width: 28, height: 26)
                 }.help(app.istDunkel ? "Heller Modus" : "Dunkler Modus")
                 Button { app.gesundheit = nil; app.zeigeGesundheit = true } label: {
-                    Image(systemName: "stethoscope").frame(width: 26, height: 24)
+                    Image(systemName: "stethoscope").frame(width: 28, height: 26)
                 }.help("Gesundheits-Check (fehlende Dateien, tote Links, Dubletten)")
+                Button { app.zeigeHilfe = true } label: {
+                    Image(systemName: "questionmark.circle").frame(width: 28, height: 26)
+                }.help("Hilfe / kurze Anleitung")
                 Button { app.zeigeKuerzel = true } label: {
-                    Image(systemName: "keyboard").frame(width: 28, height: 24)
+                    Image(systemName: "keyboard").frame(width: 30, height: 26)
                 }.help("Tastaturbefehle anzeigen")
                 Button { if let u = Dateiauswahl.ordner() { Task { await app.waehleOrt(u) } } } label: {
-                    Image(systemName: "externaldrive.connected.to.line.below").frame(width: 28, height: 24)
+                    Image(systemName: "externaldrive.connected.to.line.below").frame(width: 30, height: 26)
                 }.help("Datenbank-Ordner wechseln")
             }
-            .font(.system(size: 11, weight: .semibold))
+            .font(.system(size: 12, weight: .semibold))
             .buttonStyle(.plain).foregroundStyle(Design.paneelInhalt)
             .padding(.horizontal, 8).padding(.vertical, 5)
         }
@@ -547,9 +567,9 @@ struct WerkzeugIkon: View {
     var body: some View {
         Button(action: aktion) {
             Image(systemName: symbol)
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(hervor ? AnyShapeStyle(.white) : AnyShapeStyle(Design.paneelInhalt))
-                .frame(width: 34, height: 30)
+                .frame(width: 36, height: 32)
                 .background(hervor ? AnyShapeStyle(Design.neon)
                                    : AnyShapeStyle(Color.white.opacity(hover ? 0.18 : 0.0)),
                             in: RoundedRectangle(cornerRadius: 9, style: .continuous))
@@ -839,14 +859,14 @@ struct ReiterAnsicht: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "square.stack.3d.up")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
             if bearbeite {
                 TextField("Name", text: $entwurf)
-                    .textFieldStyle(.plain).font(Design.grotesk(13.5, gewicht: .semibold))
+                    .textFieldStyle(.plain).font(Design.grotesk(14.5, gewicht: .semibold))
                     .focused($fokus).frame(width: 120)
                     .onSubmit(commit)
             } else {
-                Text(b.name).font(Design.grotesk(13.5, gewicht: aktiv ? .semibold : .regular))
+                Text(b.name).font(Design.grotesk(14.5, gewicht: aktiv ? .semibold : .regular))
                     .lineLimit(1)
             }
         }
@@ -1048,5 +1068,149 @@ enum Dateiauswahl {
         panel.message = "Ordner wählen – Fundus sucht darin (auch in Unterordnern) nach "
             + "gleichnamigen Dateien für die defekten Karten."
         return panel.runModal() == .OK ? panel.url : nil
+    }
+}
+
+/// Haftungsausschluss – wird beim allerersten Start gezeigt.
+struct HaftungAnsicht: View {
+    @EnvironmentObject var app: AppModell
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "hand.raised.fill").font(.system(size: 20)).foregroundStyle(Design.neonCyan)
+                Text("Willkommen bei FUNDUS").font(Design.serife(18, gewicht: .semibold))
+            }
+            .padding(.horizontal, 24).padding(.top, 24).padding(.bottom, 14)
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 13) {
+                    absatz("Fundus hilft, Dokumente zu sammeln, zu verknüpfen und für die Freigabe "
+                         + "zu ordnen. Die App merkt sich nur den Ort (Pfad) Ihrer Dateien – sie "
+                         + "kopiert und verändert die Originale nicht.")
+                    absatz("Bereitstellung ohne Gewähr: Fundus wird „wie besehen“ bereitgestellt, "
+                         + "ohne jede ausdrückliche oder stillschweigende Zusicherung. Die Nutzung "
+                         + "erfolgt auf eigene Verantwortung.")
+                    absatz("Keine Haftung für Datenverlust: Für den Verlust, die Beschädigung oder "
+                         + "die fehlerhafte Verknüpfung von Daten wird keine Haftung übernommen. "
+                         + "Sichern Sie Ihre Originaldateien und die Sammlung regelmäßig selbst – "
+                         + "am besten zusätzlich auf einem externen oder Netz-Laufwerk.")
+                    absatz("Verantwortung für Inhalte: Für die abgelegten Dokumente, erteilte "
+                         + "Freigaben und deren Weitergabe sind allein Sie verantwortlich. Prüfen "
+                         + "Sie Freigaben stets eigenständig, bevor Sie darauf vertrauen.")
+                    absatz("Mit „Verstanden“ bestätigen Sie, diesen Hinweis gelesen zu haben.")
+                }
+                .padding(24)
+            }
+            .frame(maxHeight: 320)
+
+            Divider()
+            HStack {
+                Spacer()
+                Button("Verstanden") { app.bestaetigeHaftung() }
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(.horizontal, 24).padding(.vertical, 16)
+        }
+        .frame(width: 520)
+        .interactiveDismissDisabled(true)
+    }
+
+    private func absatz(_ t: String) -> some View {
+        Text(t).font(Design.grotesk(13)).foregroundStyle(Design.tinte)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Kurze, einfache Anleitung – erreichbar über das Menü „Hilfe".
+struct HilfeAnsicht: View {
+    @EnvironmentObject var app: AppModell
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "questionmark.circle.fill").font(.system(size: 20)).foregroundStyle(Design.neonCyan)
+                Text("FUNDUS – kurze Anleitung").font(Design.serife(18, gewicht: .semibold))
+                Spacer()
+                Button { app.zeigeHilfe = false; app.zeigeUeber() } label: {
+                    Text("Über").font(Design.grotesk(12))
+                }.buttonStyle(.plain).foregroundStyle(Design.gedaempft)
+            }
+            .padding(.horizontal, 24).padding(.top, 22).padding(.bottom, 12)
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    hilfe("tray.and.arrow.down", "Dokumente hinzufügen",
+                          "Dateien oder Ordner einfach aus dem Finder auf die Leinwand ziehen. "
+                        + "Alternativ ⌘V (Zwischenablage) oder der Dienst „An Fundus senden“ "
+                        + "(Finder-Rechtsklick → Dienste). Fundus verweist nur auf den Ort – das "
+                        + "Original bleibt, wo es ist.")
+                    hilfe("hand.draw", "Bewegen & Zoomen",
+                          "Leertaste halten und ziehen schwenkt die Leinwand; ⌘ + Scrollrad zoomt. "
+                        + "Objekte zieht man direkt mit der Maus. ⌥ (Option) halten und ziehen legt "
+                        + "eine Kopie an.")
+                    hilfe("folder", "Mappen & Bereiche",
+                          "Eine Mappe (Werkzeugleiste oder ⌘⇧O) gruppiert Karten – beim Verschieben "
+                        + "wandert der Inhalt mit, ein-/ausklappbar. Ein Bereich (⌘⇧B) rahmt größere "
+                        + "Abschnitte und erscheint links in der Bereichs-Navigation.")
+                    hilfe("folder.badge.gearshape", "Finder-Ordner-Karten",
+                          "Zieht man einen echten Ordner auf die Leinwand, zeigt die Karte seinen "
+                        + "Inhalt. In der Liste öffnet ein Klick das Element direkt, ⌥-Klick zeigt "
+                        + "es im Finder. Die Karte selbst wählt und verschiebt man über ihre Titelzeile.")
+                    hilfe("textformat", "Textfelder & Zettel",
+                          "Textfeld (⌘T) für Überschriften und Notizen, farbiger Zettel (⌘⇧T) als "
+                        + "Post-it. Doppelklick bearbeitet den Text, die Formatleiste darüber ändert "
+                        + "Stil und Farbe.")
+                    hilfe("tag", "Schlagworte & Symbole",
+                          "Ein ausgewähltes Objekt lässt sich mit Schlagworten und einem Symbol "
+                        + "versehen (Leiste oben). Ein Klick auf ein Symbol oder Schlagwort filtert "
+                        + "die Leinwand danach.")
+                    hilfe("link", "Verbinden",
+                          "Mit „Verbinden“ (⌘U) zwei Objekte nacheinander anklicken – eine "
+                        + "beschriftbare Linie entsteht. Esc beendet den Modus.")
+                    hilfe("magnifyingglass", "Suchen",
+                          "Das Suchfeld oben rechts durchsucht Namen und Inhalte (PDF, OCR, IDML, "
+                        + "Ordnerinhalte). ⌘K findet über alle Leinwände hinweg.")
+                    hilfe("square.stack.3d.up", "Mehrere Leinwände",
+                          "Oben links je Leinwand ein Reiter; „+“ legt eine neue an. Doppelklick "
+                        + "benennt um, das Kontextmenü dupliziert oder löscht.")
+                    hilfe("map", "Übersicht & Export",
+                          "Die Mini-Karte unten rechts zeigt alle Objekte und den sichtbaren "
+                        + "Ausschnitt – Klick/Ziehen schwenkt. Über „Teilen“ (Leiste oben rechts) "
+                        + "exportieren Sie Bild, PDF oder ein Paket, oder drucken die Leinwand.")
+                    hilfe("externaldrive", "Sicherung",
+                          "In den Einstellungen (⌘,) ein Backup-Ziel wählen – Fundus sichert die "
+                        + "Sammlung regelmäßig. Verschobene Dateien lassen sich über den "
+                        + "Gesundheits-Check und „reparieren“ wieder verknüpfen.")
+                }
+                .padding(24)
+            }
+            .frame(maxHeight: 440)
+
+            Divider()
+            HStack {
+                Text("Tastaturbefehle: Menü „Ansicht“ → Tastaturbefehle (frei belegbar).")
+                    .font(Design.grotesk(11)).foregroundStyle(Design.gedaempft)
+                Spacer()
+                Button("Fertig") { app.zeigeHilfe = false }.keyboardShortcut(.defaultAction)
+            }
+            .padding(.horizontal, 24).padding(.vertical, 14)
+        }
+        .frame(width: 560)
+    }
+
+    private func hilfe(_ symbol: String, _ titel: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: symbol).font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Design.neon).frame(width: 26)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(titel).font(Design.grotesk(13.5, gewicht: .semibold)).foregroundStyle(Design.tinte)
+                Text(text).font(Design.grotesk(12.5)).foregroundStyle(Design.gedaempft)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }

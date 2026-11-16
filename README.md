@@ -74,6 +74,7 @@ Zuverlässig ist, einmalig die Download-Markierung (Quarantäne) zu entfernen:
 
 1. DMG öffnen und **Fundus** in den Ordner **Programme** ziehen.
 2. **Terminal** öffnen (Programme → Dienstprogramme → Terminal) und eingeben:
+
    ```bash
    xattr -dr com.apple.quarantine /Applications/Fundus.app
    ```

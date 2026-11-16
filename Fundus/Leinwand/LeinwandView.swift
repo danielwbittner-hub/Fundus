@@ -356,7 +356,7 @@ struct KarteAnsicht: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(e.defekt ? Design.neonFuchsia : ordnerFarbe)
                 Text(e.name)
-                    .font(Design.grotesk(12.5, gewicht: .semibold)).foregroundStyle(Design.tinte)
+                    .font(Design.grotesk(CGFloat(app.szOrdnerTitel), gewicht: .semibold)).foregroundStyle(Design.tinte)
                     .lineLimit(1).truncationMode(.middle)
                 Spacer(minLength: 0)
             }
@@ -370,14 +370,7 @@ struct KarteAnsicht: View {
                     Text("leer").font(Design.grotesk(10.5)).foregroundStyle(Design.gedaempft)
                 } else {
                     ForEach(ordnerInhalt.prefix(sichtbareZeilen)) { kind in
-                        HStack(spacing: 6) {
-                            Image(systemName: kind.istOrdner ? "folder" : "doc")
-                                .font(.system(size: 9))
-                                .foregroundStyle(kind.istOrdner ? ordnerFarbe : Design.gedaempft)
-                            Text(kind.name).font(Design.grotesk(10.5)).foregroundStyle(Design.tinte)
-                                .lineLimit(1).truncationMode(.middle)
-                            Spacer(minLength: 0)
-                        }
+                        OrdnerInhaltZeile(e: e, kind: kind, farbe: ordnerFarbe)
                     }
                     if ordnerAnzahl > sichtbareZeilen {
                         Text("+ \(ordnerAnzahl - sichtbareZeilen) weitere")
@@ -423,7 +416,7 @@ struct KarteAnsicht: View {
                     .foregroundStyle(linkAkzent.opacity(0.8))
             }
             Text(e.name)
-                .font(Design.grotesk(12.5, gewicht: .semibold)).foregroundStyle(Design.tinte)
+                .font(Design.grotesk(CGFloat(app.szDateiname), gewicht: .semibold)).foregroundStyle(Design.tinte)
                 .lineLimit(2).truncationMode(.tail)
                 .fixedSize(horizontal: false, vertical: true)
             if !e.kommentar.isEmpty {
@@ -469,7 +462,7 @@ struct KarteAnsicht: View {
                 }
                 .font(.system(size: 11, weight: .semibold))
                 Text(e.name)
-                    .font(Design.grotesk(12.5, gewicht: .semibold))
+                    .font(Design.grotesk(CGFloat(app.szDateiname), gewicht: .semibold))
                     .foregroundStyle(Design.tinte)
                     .lineLimit(2).truncationMode(.middle)
                     .fixedSize(horizontal: false, vertical: true)
@@ -499,7 +492,11 @@ struct KarteAnsicht: View {
                     letzteTrans = g.translation
                 } else {
                     let s = start ?? CGPoint(x: e.x, y: e.y)
-                    if start == nil { app.beginneAktion(); start = s; app.einzelAuswahl(.karte(e.id)) }
+                    if start == nil {
+                        app.beginneAktion(); start = s
+                        if app.optionAktiv { app.dupliziereKarteAnOrt(e.id) }   // ⌥ → Kopie bleibt zurück
+                        app.einzelAuswahl(.karte(e.id))
+                    }
                     let nx = s.x + g.translation.width / app.zoom
                     let ny = s.y + g.translation.height / app.zoom
                     app.verschiebe(e.id, x: nx, y: ny)
@@ -552,6 +549,45 @@ struct KarteAnsicht: View {
             Button("macOS-Pfad (/)") { app.kopierePfad(e, windows: false) }
             Button("Windows-Pfad (\\)") { app.kopierePfad(e, windows: true) }
         }
+    }
+}
+
+/// Eine anklickbare Zeile im Inhalt eines referenzierten Finder-Ordners.
+/// Ein Klick öffnet das Element direkt, ⌥-Klick zeigt es im Finder. Als echter
+/// Button (statt Tap-Geste) reagiert er zuverlässig – auch in der skalierten
+/// Leinwand. Die Karte selbst wählt/zieht man über ihre Titelzeile.
+struct OrdnerInhaltZeile: View {
+    @EnvironmentObject var app: AppModell
+    let e: Eintrag
+    let kind: OrdnerInhalt.Eintrag
+    let farbe: Color
+    @State private var hover = false
+
+    var body: some View {
+        Button {
+            let imFinderZeigen = NSEvent.modifierFlags.contains(.option)
+            app.oeffneOrdnerKind(e, kind, reveal: imFinderZeigen)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: kind.istOrdner ? "folder" : "doc")
+                    .font(.system(size: CGFloat(app.szOrdnerInhalt) * 0.86))
+                    .foregroundStyle(kind.istOrdner ? farbe : Design.gedaempft)
+                Text(kind.name).font(Design.grotesk(CGFloat(app.szOrdnerInhalt))).foregroundStyle(Design.tinte)
+                    .lineLimit(1).truncationMode(.middle)
+                Spacer(minLength: 0)
+                Image(systemName: kind.istOrdner ? "arrow.up.forward.square" : "arrow.up.forward.app")
+                    .font(.system(size: CGFloat(app.szOrdnerInhalt) * 0.92, weight: .semibold))
+                    .foregroundStyle(farbe)
+                    .opacity(hover ? 1 : 0)
+            }
+            .padding(.horizontal, 5).padding(.vertical, 1.5)
+            .background(RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(hover ? farbe.opacity(0.18) : Color.clear))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+        .help("Klick öffnet „\(kind.name)“ · ⌥-Klick zeigt es im Finder")
     }
 }
 
@@ -628,9 +664,10 @@ struct OrdnerAnsicht: View {
 
             if !o.symbol.isEmpty {
                 Button { app.filtereNachSymbol(o.symbol) } label: {
-                    Image(systemName: o.symbol).font(.system(size: 11, weight: .semibold))
+                    Image(systemName: o.symbol).font(.system(size: 12, weight: .bold))
                         .foregroundStyle(.white)
-                        .padding(4).background(Circle().fill(farbe))
+                        .padding(5).background(Circle().fill(farbe))
+                        .overlay(Circle().strokeBorder(.white.opacity(0.7), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .help("Klick filtert nach diesem Symbol")
@@ -638,12 +675,12 @@ struct OrdnerAnsicht: View {
 
             if bearbeite {
                 TextField("Name", text: $nameEntwurf)
-                    .textFieldStyle(.plain).font(Design.grotesk(12, gewicht: .semibold))
+                    .textFieldStyle(.plain).font(Design.grotesk(CGFloat(app.szOrdnerTitel), gewicht: .semibold))
                     .foregroundStyle(.white).focused($fokus)
                     .onSubmit(commitName)
                     .frame(maxWidth: 180)
             } else {
-                Text(o.name).font(Design.grotesk(12, gewicht: .semibold)).foregroundStyle(.white)
+                Text(o.name).font(Design.grotesk(CGFloat(app.szOrdnerTitel), gewicht: .semibold)).foregroundStyle(.white)
                     .onTapGesture(count: 2) { starteBearbeiten() }
             }
 
@@ -668,10 +705,11 @@ struct OrdnerAnsicht: View {
             }.buttonStyle(.plain).foregroundStyle(farbe)
             Image(systemName: "folder.fill").font(.system(size: 13)).foregroundStyle(farbe)
             if !o.symbol.isEmpty {
-                Image(systemName: o.symbol).font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white).padding(3.5).background(Circle().fill(farbe))
+                Image(systemName: o.symbol).font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white).padding(4.5).background(Circle().fill(farbe))
+                    .overlay(Circle().strokeBorder(.white.opacity(0.7), lineWidth: 1))
             }
-            Text(o.name).font(Design.grotesk(12, gewicht: .semibold)).foregroundStyle(.white)
+            Text(o.name).font(Design.grotesk(CGFloat(app.szOrdnerTitel), gewicht: .semibold)).foregroundStyle(.white)
                 .lineLimit(1)
             Text("\(app.mitgliederZahl(o.id))")
                 .font(Design.grotesk(10, gewicht: .bold)).foregroundStyle(.white.opacity(0.9))
@@ -827,7 +865,6 @@ struct NotizAnsicht: View {
     @State private var groesseStart: CGSize?
     @State private var bearbeite = false
     @State private var entwurf = ""
-    @FocusState private var fokus: Bool
 
     private var markiert: Bool { app.istMarkiert(.notiz(n.id)) }
     private var einzeln: Bool { app.auswahl == .notiz(n.id) }
@@ -845,13 +882,17 @@ struct NotizAnsicht: View {
     }
     /// Akzent für Rahmen/Griff: beim Zettel die Füllfarbe, sonst die Textfarbe.
     private var akzent: Color { istZettel ? zettelFarbe : textFarbe }
-    private var schrift: Font {
+    /// Schriftgröße nach Stil – individuell in den Einstellungen festgelegt.
+    private var schriftGroesse: CGFloat { CGFloat(app.notizGroesse(n.stil)) }
+    private var schriftGewicht: Font.Weight {
         switch n.stil {
-        case 2: return .system(size: 34, weight: .bold)      // Überschrift 1
-        case 1: return .system(size: 24, weight: .semibold)  // Überschrift 2
-        default: return .system(size: 16, weight: .regular)  // Text
+        case 2: return .bold         // Überschrift 1
+        case 1: return .semibold     // Überschrift 2
+        case 3: return .semibold     // Überschrift 3
+        default: return .regular     // Text
         }
     }
+    private var schrift: Font { .system(size: schriftGroesse, weight: schriftGewicht) }
 
     var body: some View {
         inhalt
@@ -859,6 +900,7 @@ struct NotizAnsicht: View {
             // Post-it: immer farbig gefüllt. Freier Text: rahmenlos, Rahmen nur bei Auswahl.
             .background(hintergrund)
             .overlay(rand)
+            .overlay(alignment: .bottomTrailing) { if istZettel { eselsohr } }
             .shadow(color: .black.opacity(istZettel ? 0.34 : ((markiert || bearbeite) ? 0.3 : 0)),
                     radius: istZettel ? 8 : 6, y: istZettel ? 5 : 3)
             .contentShape(Rectangle())
@@ -884,27 +926,58 @@ struct NotizAnsicht: View {
             .gesture(ziehGeste, including: bearbeite ? .subviews : .all)
             .onTapGesture(count: 2) { starte() }
             .onTapGesture(count: 1) { app.objektGetippt(.notiz(n.id)) }
-            .onChange(of: fokus) { _, f in if !f { bearbeite = false } }
             .onAppear { if app.fokusNotiz == n.id { app.fokusNotiz = nil; starte() } }
+            .onChange(of: app.notizBearbeiten) { _, v in
+                if v == n.id { app.notizBearbeiten = nil; starte() }
+            }
             .onChange(of: app.auswahl) { _, neu in
-                if bearbeite && neu != .notiz(n.id) { bearbeite = false; fokus = false }
+                if bearbeite && neu != .notiz(n.id) { beendeBearbeiten() }
             }
             .contextMenu { menue }
     }
 
     @ViewBuilder private var hintergrund: some View {
         if istZettel {
-            RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Design.pastell(zettelFarbe))
+            // Papier mit feinem Lichtverlauf (oben heller, unten leicht abgedunkelt) –
+            // wirkt plastischer, wie ein echtes Haftnotiz-Blatt.
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Design.pastell(zettelFarbe))
+                .overlay(
+                    LinearGradient(colors: [Color.white.opacity(0.28), .clear, Color.black.opacity(0.06)],
+                                   startPoint: .top, endPoint: .bottom)
+                        .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous)))
         } else {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill((markiert || bearbeite) ? Color.black.opacity(0.38) : Color.clear)
         }
     }
 
+    /// Umgeknickte Ecke unten rechts – das klassische Post-it-Signal.
+    private var eselsohr: some View {
+        let s: CGFloat = 16
+        return ZStack {
+            Path { p in
+                p.move(to: CGPoint(x: s, y: 0))
+                p.addLine(to: CGPoint(x: s, y: s))
+                p.addLine(to: CGPoint(x: 0, y: s))
+                p.closeSubpath()
+            }
+            .fill(LinearGradient(colors: [zettelFarbe.opacity(0.65), Design.pastell(zettelFarbe)],
+                                 startPoint: .topTrailing, endPoint: .bottomLeading))
+            Path { p in
+                p.move(to: CGPoint(x: s, y: 0))
+                p.addLine(to: CGPoint(x: 0, y: s))
+            }
+            .stroke(Color.white.opacity(0.55), lineWidth: 0.8)
+        }
+        .frame(width: s, height: s)
+        .shadow(color: .black.opacity(0.18), radius: 1.5, x: -1, y: -1)
+    }
+
     @ViewBuilder private var rand: some View {
         if istZettel {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .strokeBorder(zettelFarbe.opacity(markiert ? 0.95 : 0.55), lineWidth: markiert ? 2.5 : 1)
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .strokeBorder(zettelFarbe.opacity(markiert ? 0.95 : 0.4), lineWidth: markiert ? 2.5 : 1)
         } else {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .strokeBorder(akzent, lineWidth: 1.5)
@@ -914,19 +987,16 @@ struct NotizAnsicht: View {
 
     @ViewBuilder private var inhalt: some View {
         if bearbeite {
-            TextEditor(text: $entwurf)
-                .font(schrift)
-                .foregroundStyle(textFarbe)
-                .scrollContentBackground(.hidden)
-                .focused($fokus)
-                .padding(7)
+            RichNotizEditor(text: $entwurf, befehl: $app.notizFormat,
+                            groesse: schriftGroesse, farbe: NSColor(textFarbe),
+                            onEnde: { beendeBearbeiten() })
+                .padding(5)
                 .onChange(of: entwurf) { _, neu in app.setzeNotizText(n.id, neu) }
         } else {
-            Text(n.text.isEmpty ? (istZettel ? "Zettel…" : "Text…") : n.text)
-                .font(schrift)
-                .foregroundStyle(n.text.isEmpty ? textFarbe.opacity(0.45) : textFarbe)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(9)
+            NotizInhalt(text: n.text, font: schrift, farbe: textFarbe,
+                        platzhalter: istZettel ? "Zettel…" : "Text…",
+                        toggle: { app.toggleNotizCheckliste(n.id, zeile: $0) })
+                .padding(istZettel ? 11 : 9)
         }
     }
 
@@ -941,7 +1011,11 @@ struct NotizAnsicht: View {
                     letzteTrans = g.translation
                 } else {
                     let s = start ?? CGPoint(x: n.x, y: n.y)
-                    if start == nil { app.beginneAktion(); start = s; app.einzelAuswahl(.notiz(n.id)) }
+                    if start == nil {
+                        app.beginneAktion(); start = s
+                        if app.optionAktiv { app.dupliziereNotizAnOrt(n.id) }   // ⌥ → Kopie bleibt zurück
+                        app.einzelAuswahl(.notiz(n.id))
+                    }
                     let nx = s.x + g.translation.width / app.zoom
                     let ny = s.y + g.translation.height / app.zoom
                     app.verschiebeNotiz(n.id, x: nx, y: ny)
@@ -962,9 +1036,14 @@ struct NotizAnsicht: View {
 
     private func starte() {
         entwurf = n.text
-        bearbeite = true
         app.einzelAuswahl(.notiz(n.id))
-        DispatchQueue.main.async { fokus = true }
+        bearbeite = true
+    }
+
+    private func beendeBearbeiten() {
+        guard bearbeite else { return }
+        bearbeite = false
+        app.setzeNotizText(n.id, entwurf)
     }
 }
 

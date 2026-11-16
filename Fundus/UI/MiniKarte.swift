@@ -8,16 +8,35 @@ struct MiniKarte: View {
     private let feldB: CGFloat = 196
     private let feldHMax: CGFloat = 150
 
-    /// Umschließendes Rechteck aller Objekte (mit etwas Rand).
-    private var inhalt: CGRect? { app.inhaltRechteck()?.insetBy(dx: -40, dy: -40) }
+    /// Der aktuell sichtbare Ausschnitt in Leinwand-Koordinaten
+    /// (Bildschirm → Leinwand: (Bildschirm − Schwenk) / Zoom).
+    private var sichtRechteck: CGRect? {
+        let g = app.leinwandGroesse
+        let z = app.zoom
+        guard g.width > 1, g.height > 1, z > 0 else { return nil }
+        return CGRect(x: -app.schwenk.width / z, y: -app.schwenk.height / z,
+                      width: g.width / z, height: g.height / z)
+    }
+
+    /// Bezugsrechteck der Mini-Karte: Objekte UND sichtbarer Ausschnitt zusammen,
+    /// damit das Sichtfenster immer sichtbar und richtig eingeordnet bleibt
+    /// (sonst ragt es beim Hineinzoomen aus dem Objekt-Rechteck heraus).
+    private var bezug: CGRect? {
+        switch (app.inhaltRechteck(), sichtRechteck) {
+        case let (objekte?, sicht?): return objekte.union(sicht).insetBy(dx: -24, dy: -24)
+        case let (objekte?, nil):    return objekte.insetBy(dx: -40, dy: -40)
+        case let (nil, sicht?):      return sicht.insetBy(dx: -24, dy: -24)
+        default:                     return nil
+        }
+    }
 
     var body: some View {
         if app.zeigeMiniKarte {
-            if let inhalt, inhalt.width > 1, inhalt.height > 1 {
-                let s = min(feldB / inhalt.width, feldHMax / inhalt.height)
-                let b = inhalt.width * s
-                let h = inhalt.height * s
-                karte(inhalt: inhalt, skala: s, breite: b, hoehe: h)
+            if let bezug, bezug.width > 1, bezug.height > 1 {
+                let s = min(feldB / bezug.width, feldHMax / bezug.height)
+                let b = bezug.width * s
+                let h = bezug.height * s
+                karte(inhalt: bezug, skala: s, breite: b, hoehe: h)
             } else {
                 knopfNurEin
             }
