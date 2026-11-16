@@ -245,6 +245,28 @@ struct HauptAnsicht: View {
             InspektorLeiste()
                 .padding(.top, 116)
                 .animation(.easeOut(duration: 0.15), value: app.auswahl)
+            if let s = app.symbolFilter {
+                VStack {
+                    Button { app.symbolFilterAus() } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: s).font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Design.neonCyan)
+                            Text("Nur dieses Symbol").font(Design.grotesk(12, gewicht: .medium))
+                                .foregroundStyle(.white)
+                            Image(systemName: "xmark.circle.fill").font(.system(size: 12))
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 8)
+                        .background(Design.paneel, in: Capsule())
+                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.12)))
+                        .shadow(color: .black.opacity(0.4), radius: 12, y: 5)
+                    }
+                    .buttonStyle(.plain).help("Symbolfilter aufheben")
+                    Spacer()
+                }
+                .padding(.top, 74)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
             if let m = app.exportMeldung {
                 VStack {
                     Spacer()
@@ -274,6 +296,7 @@ struct HauptAnsicht: View {
         .overlay(alignment: .bottomTrailing) { MiniKarte().padding(16) }
         .animation(.easeOut(duration: 0.15), value: app.zeigePalette)
         .animation(.easeOut(duration: 0.2), value: app.exportMeldung)
+        .animation(.easeOut(duration: 0.18), value: app.symbolFilter)
         .onAppear { installiereTastenWacht() }
         .onDisappear { if let m = tastenWacht { NSEvent.removeMonitor(m); tastenWacht = nil } }
         .alert("Entfernen?", isPresented: loeschBinding, presenting: app.loeschKandidat) { _ in

@@ -57,6 +57,9 @@ struct Eintrag: Identifiable, Equatable {
     var kommentar: String = ""   // freie Notiz (v. a. bei Web-Links)
     var tags: String = ""        // Schlagworte (Leer-/Komma-getrennt, durchsuchbar)
     var lesezeichen: String? = nil  // Security-Scoped Bookmark (base64) – übersteht Verschieben/Umbenennen
+    var farbe: Int = 0           // Akzentfarbe (Palette-Index, v. a. Web-Links)
+    var farbhex: String? = nil   // eigener Farbwert, hat Vorrang vor der Palette
+    var symbol: String = ""      // SF-Symbol aus dem Katalog (leer = keins)
 
     var url: URL { URL(fileURLWithPath: pfad) }
     var defekt: Bool { zustand == "defekt" }
@@ -133,6 +136,7 @@ struct Ordner: Identifiable, Equatable {
     var eingeklappt: Bool
     var farbe: Int
     var farbhex: String?   // eigener Farbwert, hat Vorrang vor der Palette
+    var symbol: String = ""   // SF-Symbol aus dem Katalog (leer = keins)
 }
 
 /// Ein frei platzierbares Textfeld (Whiteboard-Notiz) – liegt über den Karten.
@@ -149,6 +153,7 @@ struct Notiz: Identifiable, Equatable {
     var farbhex: String?  // eigener Farbwert, hat Vorrang vor der Palette
     var ordnerID: Int?    // Mitgliedschaft in einem Ordner (nil = frei)
     var zettel: Bool      // true = farbiger Notizzettel (Post-it) statt freier Text
+    var symbol: String = ""   // SF-Symbol aus dem Katalog (leer = keins)
 }
 
 /// Eine Leinwand (mehrere möglich, als Reiter oben).

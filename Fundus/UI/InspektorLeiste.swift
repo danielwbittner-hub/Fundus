@@ -26,6 +26,18 @@ struct InspektorLeiste: View {
             rahmen {
                 Image(systemName: "tag").font(.system(size: 12)).foregroundStyle(Design.neonCyan)
                 TagWerkstatt(id: id, tags: e.tagListe)
+                // Web-Links lassen sich zusätzlich einfärben.
+                if e.istWeblink {
+                    teiler
+                    Image(systemName: "paintpalette").font(.system(size: 12)).foregroundStyle(Design.neonCyan)
+                    FarbWahl(aktuell: Design.linkFarbe(hex: e.farbhex)) {
+                        app.setzeKarteFarbhex(id, $0)
+                    }
+                }
+                teiler
+                SymbolSteuer(symbol: e.symbol, farbe: Design.linkFarbe(hex: e.farbhex)) {
+                    app.setzeKarteSymbol(id, $0)
+                }
             }
         }
     }
@@ -48,6 +60,11 @@ struct InspektorLeiste: View {
                         app.setzeNotizFarbhex(id, $0)
                     }
                 }
+                teiler
+                SymbolSteuer(symbol: n.symbol,
+                             farbe: n.zettel ? Design.farbe(index: n.farbe, hex: n.farbhex) : Design.akzent) {
+                    app.setzeNotizSymbol(id, $0)
+                }
             }
         }
     }
@@ -60,6 +77,10 @@ struct InspektorLeiste: View {
                 teiler
                 FarbWahl(aktuell: Design.farbe(index: o.farbe, hex: o.farbhex)) {
                     app.setzeOrdnerFarbhex(id, $0)
+                }
+                teiler
+                SymbolSteuer(symbol: o.symbol, farbe: Design.farbe(index: o.farbe, hex: o.farbhex)) {
+                    app.setzeOrdnerSymbol(id, $0)
                 }
             }
         }

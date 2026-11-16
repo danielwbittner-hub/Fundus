@@ -49,6 +49,9 @@ struct EckGriffe: View {
     var minB: Double
     var minH: Double
     var groesse: CGFloat = 15
+    /// Welche Ecken Griffe bekommen (z. B. bei Mappen ohne oben links, damit das
+    /// Zuklapp-Dreieck frei bleibt).
+    var ecken: [Ecke] = Ecke.allCases
     let rechteck: () -> CGRect
     let beginn: () -> Void
     let aktualisiere: (CGRect) -> Void
@@ -57,7 +60,7 @@ struct EckGriffe: View {
 
     var body: some View {
         ZStack {
-            ForEach(Ecke.allCases, id: \.self) { ecke in
+            ForEach(ecken, id: \.self) { ecke in
                 knopf(ecke)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: ecke.ausrichtung)
             }
@@ -117,6 +120,7 @@ struct LeinwandView: View {
                     // Ordner hinten
                     ForEach(app.ordnerListe) { o in
                         OrdnerAnsicht(o: o).offset(x: o.x, y: o.y)
+                            .opacity(app.passtO(o) ? 1 : 0.16)
                     }
                     // Karten (in eingeklappten Ordnern verborgen)
                     ForEach(app.eintraege.filter { !app.istVerborgen($0) }) { e in
@@ -131,6 +135,7 @@ struct LeinwandView: View {
                         NotizAnsicht(n: n)
                             .frame(width: n.breite, height: n.hoehe, alignment: .topLeading)
                             .offset(x: n.x, y: n.y)
+                            .opacity(app.passtN(n) ? 1 : 0.16)
                     }
                     // Lösch-Punkte der Verbindungen (ganz vorne, anklickbar)
                     ForEach(app.verbindungen) { v in VerbindungPunkt(v: v) }
@@ -232,6 +237,12 @@ struct KarteAnsicht: View {
     private var markiert: Bool { app.istMarkiert(.karte(e.id)) }
     private var einzeln: Bool { app.auswahl == .karte(e.id) }
 
+    /// Beim Skalieren: Links und Finder-Ordner lassen sich frei in Breite/Höhe
+    /// ziehen; Dateien (Bild, PDF, Grafik …) behalten ihr Seitenverhältnis.
+    private var griffVerhaeltnis: Double? {
+        (e.istWeblink || e.istOrdnerRef) ? nil : e.seitenverhaeltnis
+    }
+
     private var randStil: AnyShapeStyle {
         if e.defekt { return AnyShapeStyle(Design.neonFuchsia) }
         if markiert || hover { return AnyShapeStyle(Design.neon) }
@@ -248,7 +259,7 @@ struct KarteAnsicht: View {
         )
         .overlay {
             if hover || einzeln {
-                EckGriffe(farbe: Design.neonCyan, verh: e.seitenverhaeltnis, minB: 120, minH: 90,
+                EckGriffe(farbe: Design.neonCyan, verh: griffVerhaeltnis, minB: 120, minH: 72,
                           rechteck: { CGRect(x: e.x, y: e.y, width: e.breite, height: e.hoehe) },
                           beginn: { app.beginneAktion() },
                           aktualisiere: { app.formeKarte(e.id, $0) },
@@ -257,6 +268,16 @@ struct KarteAnsicht: View {
         }
         .overlay(alignment: .top) {
             if hover && !e.defekt { ziehGriff.offset(y: -12) }
+        }
+        .overlay(alignment: .topLeading) {
+            if !e.symbol.isEmpty {
+                Button { app.filtereNachSymbol(e.symbol) } label: {
+                    SymbolAbzeichen(symbol: e.symbol, farbe: Design.linkFarbe(hex: e.farbhex))
+                }
+                .buttonStyle(.plain)
+                .offset(x: -9, y: -9)
+                .help("Nach diesem Symbol filtern")
+            }
         }
         .shadow(color: .black.opacity(markiert || hover ? 0.5 : 0.3),
                 radius: markiert || hover ? 18 : 9, y: markiert || hover ? 9 : 4)
@@ -381,6 +402,8 @@ struct KarteAnsicht: View {
 
     // MARK: Weblink
 
+    private var linkAkzent: Color { Design.linkFarbe(hex: e.farbhex) }
+
     private var linkKarte: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 6) {
@@ -391,20 +414,20 @@ struct KarteAnsicht: View {
                         .clipShape(RoundedRectangle(cornerRadius: 3))
                 } else {
                     Image(systemName: "globe").font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Design.neonCyan)
+                        .foregroundStyle(linkAkzent)
                 }
                 Text(e.webHost).font(Design.grotesk(10)).foregroundStyle(Design.gedaempft)
                     .lineLimit(1).truncationMode(.middle)
                 Spacer(minLength: 0)
                 Image(systemName: "arrow.up.forward").font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(Design.gedaempft)
+                    .foregroundStyle(linkAkzent.opacity(0.8))
             }
             Text(e.name)
                 .font(Design.grotesk(12.5, gewicht: .semibold)).foregroundStyle(Design.tinte)
                 .lineLimit(2).truncationMode(.tail)
                 .fixedSize(horizontal: false, vertical: true)
             if !e.kommentar.isEmpty {
-                Divider().overlay(Design.neonCyan.opacity(0.25))
+                Divider().overlay(linkAkzent.opacity(0.3))
                 Text(e.kommentar)
                     .font(Design.grotesk(10.5)).foregroundStyle(Design.gedaempft)
                     .lineLimit(3).truncationMode(.tail)
@@ -415,8 +438,11 @@ struct KarteAnsicht: View {
         }
         .padding(.horizontal, 11).padding(.vertical, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(LinearGradient(colors: [Design.neonCyan.opacity(0.14), Color.clear],
+        .background(LinearGradient(colors: [linkAkzent.opacity(0.18), linkAkzent.opacity(0.03)],
                                    startPoint: .topLeading, endPoint: .bottomTrailing))
+        .overlay(alignment: .leading) {
+            Rectangle().fill(linkAkzent).frame(width: 3)   // farbiger Streifen am linken Rand
+        }
     }
 
     @ViewBuilder private var vorschau: some View {
@@ -582,6 +608,7 @@ struct OrdnerAnsicht: View {
         .overlay {
             if einzeln {
                 EckGriffe(farbe: farbe, verh: nil, minB: 180, minH: 130, groesse: 18,
+                          ecken: [.obenRechts, .untenLinks, .untenRechts],
                           rechteck: { CGRect(x: o.x, y: o.y, width: o.breite, height: o.hoehe) },
                           beginn: { app.beginneAktion() },
                           aktualisiere: { app.formeOrdner(o.id, $0) },
@@ -598,6 +625,16 @@ struct OrdnerAnsicht: View {
             }.buttonStyle(.plain).foregroundStyle(farbe)
 
             Image(systemName: "folder.fill").font(.system(size: 12)).foregroundStyle(farbe)
+
+            if !o.symbol.isEmpty {
+                Button { app.filtereNachSymbol(o.symbol) } label: {
+                    Image(systemName: o.symbol).font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(4).background(Circle().fill(farbe))
+                }
+                .buttonStyle(.plain)
+                .help("Klick filtert nach diesem Symbol")
+            }
 
             if bearbeite {
                 TextField("Name", text: $nameEntwurf)
@@ -630,6 +667,10 @@ struct OrdnerAnsicht: View {
                 Image(systemName: "chevron.right").font(.system(size: 10, weight: .bold))
             }.buttonStyle(.plain).foregroundStyle(farbe)
             Image(systemName: "folder.fill").font(.system(size: 13)).foregroundStyle(farbe)
+            if !o.symbol.isEmpty {
+                Image(systemName: o.symbol).font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white).padding(3.5).background(Circle().fill(farbe))
+            }
             Text(o.name).font(Design.grotesk(12, gewicht: .semibold)).foregroundStyle(.white)
                 .lineLimit(1)
             Text("\(app.mitgliederZahl(o.id))")
@@ -821,6 +862,16 @@ struct NotizAnsicht: View {
             .shadow(color: .black.opacity(istZettel ? 0.34 : ((markiert || bearbeite) ? 0.3 : 0)),
                     radius: istZettel ? 8 : 6, y: istZettel ? 5 : 3)
             .contentShape(Rectangle())
+            .overlay(alignment: .topLeading) {
+                if !n.symbol.isEmpty {
+                    Button { app.filtereNachSymbol(n.symbol) } label: {
+                        SymbolAbzeichen(symbol: n.symbol, farbe: akzent)
+                    }
+                    .buttonStyle(.plain)
+                    .offset(x: -9, y: -9)
+                    .help("Nach diesem Symbol filtern")
+                }
+            }
             .overlay {
                 if einzeln || bearbeite {
                     EckGriffe(farbe: akzent, verh: nil, minB: 120, minH: 54, groesse: 13,

@@ -95,6 +95,12 @@ enum Design {
         return objektFarbe(index)
     }
 
+    /// Akzentfarbe eines Web-Links: eigener Hex-Wert, sonst das Standard-Cyan.
+    static func linkFarbe(hex: String?) -> Color {
+        if let h = hex, !h.isEmpty { return Color(hex: h) }
+        return neonCyan
+    }
+
     /// Weiche Pastellvariante (zur Hälfte Richtung Weiß) – für Post-it-Flächen.
     static func pastell(_ c: Color) -> Color {
         let ns = NSColor(c).usingColorSpace(.sRGB) ?? .gray

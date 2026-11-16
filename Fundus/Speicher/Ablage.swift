@@ -47,7 +47,10 @@ actor Ablage {
               idml_quelle TEXT,
               zustand TEXT NOT NULL DEFAULT 'ok',
               indiziert INTEGER NOT NULL DEFAULT 0,
-              ordner_id INTEGER
+              ordner_id INTEGER,
+              farbe INTEGER NOT NULL DEFAULT 0,
+              farbhex TEXT,
+              symbol TEXT NOT NULL DEFAULT ''
             );
         """)
         // Migration für ältere DBs: Spalte nachrüsten (Fehler egal, falls vorhanden).
@@ -55,6 +58,9 @@ actor Ablage {
         db.exec("ALTER TABLE eintrag ADD COLUMN kommentar TEXT NOT NULL DEFAULT '';")
         db.exec("ALTER TABLE eintrag ADD COLUMN tags TEXT NOT NULL DEFAULT '';")
         db.exec("ALTER TABLE eintrag ADD COLUMN lesezeichen TEXT;")
+        db.exec("ALTER TABLE eintrag ADD COLUMN farbe INTEGER NOT NULL DEFAULT 0;")
+        db.exec("ALTER TABLE eintrag ADD COLUMN farbhex TEXT;")
+        db.exec("ALTER TABLE eintrag ADD COLUMN symbol TEXT NOT NULL DEFAULT '';")
         db.exec("""
             CREATE TABLE IF NOT EXISTS ordner(
               id INTEGER PRIMARY KEY,
@@ -67,11 +73,13 @@ actor Ablage {
               eingeklappt INTEGER NOT NULL DEFAULT 0,
               farbe INTEGER NOT NULL DEFAULT 0,
               farbhex TEXT,
+              symbol TEXT NOT NULL DEFAULT '',
               erstellt REAL NOT NULL DEFAULT 0
             );
         """)
         db.exec("ALTER TABLE ordner ADD COLUMN farbe INTEGER NOT NULL DEFAULT 0;")
         db.exec("ALTER TABLE ordner ADD COLUMN farbhex TEXT;")
+        db.exec("ALTER TABLE ordner ADD COLUMN symbol TEXT NOT NULL DEFAULT '';")
         db.exec("""
             CREATE TABLE IF NOT EXISTS notiz(
               id INTEGER PRIMARY KEY,
@@ -86,6 +94,7 @@ actor Ablage {
               stil INTEGER NOT NULL DEFAULT 0,
               farbhex TEXT,
               ordner_id INTEGER,
+              symbol TEXT NOT NULL DEFAULT '',
               erstellt REAL NOT NULL DEFAULT 0
             );
         """)
@@ -93,6 +102,7 @@ actor Ablage {
         db.exec("ALTER TABLE notiz ADD COLUMN farbhex TEXT;")
         db.exec("ALTER TABLE notiz ADD COLUMN ordner_id INTEGER;")
         db.exec("ALTER TABLE notiz ADD COLUMN zettel INTEGER NOT NULL DEFAULT 0;")
+        db.exec("ALTER TABLE notiz ADD COLUMN symbol TEXT NOT NULL DEFAULT '';")
         db.exec("""
             CREATE TABLE IF NOT EXISTS verbindung(
               id INTEGER PRIMARY KEY,
@@ -139,7 +149,7 @@ actor Ablage {
 
     func eintraege(board: Int = 1) -> [Eintrag] {
         db.lies("""
-            SELECT id,pfad,name,endung,kategorie,groesse,x,y,breite,hoehe,vorschau,idml_quelle,zustand,ordner_id,kommentar,tags,lesezeichen
+            SELECT id,pfad,name,endung,kategorie,groesse,x,y,breite,hoehe,vorschau,idml_quelle,zustand,ordner_id,kommentar,tags,lesezeichen,farbe,farbhex,symbol
             FROM eintrag WHERE board_id=? ORDER BY id
         """, [.ganz(board)]) { z in
             Eintrag(
@@ -149,7 +159,8 @@ actor Ablage {
                 breite: z.komma(8), hoehe: z.komma(9),
                 vorschau: z.textOpt(10), idmlQuelle: z.textOpt(11), zustand: z.text(12),
                 ordnerID: z.ganzOpt(13), kommentar: z.text(14),
-                tags: z.text(15), lesezeichen: z.textOpt(16)
+                tags: z.text(15), lesezeichen: z.textOpt(16),
+                farbe: z.ganz(17), farbhex: z.textOpt(18), symbol: z.text(19)
             )
         }
     }
@@ -241,6 +252,17 @@ actor Ablage {
 
     func setzeTags(_ id: Int, _ tags: String) {
         db.schreibe("UPDATE eintrag SET tags=? WHERE id=?", [.text(tags), .ganz(id)])
+    }
+
+    func setzeFarbe(_ id: Int, _ farbe: Int) {
+        db.schreibe("UPDATE eintrag SET farbe=? WHERE id=?", [.ganz(farbe), .ganz(id)])
+    }
+    func setzeFarbhex(_ id: Int, _ hex: String?) {
+        db.schreibe("UPDATE eintrag SET farbhex=? WHERE id=?",
+                    [hex.map { Datenbank.Wert.text($0) } ?? .leer, .ganz(id)])
+    }
+    func setzeSymbol(_ id: Int, _ symbol: String) {
+        db.schreibe("UPDATE eintrag SET symbol=? WHERE id=?", [.text(symbol), .ganz(id)])
     }
 
     func setzeLesezeichen(_ id: Int, _ base64: String?) {
@@ -357,12 +379,12 @@ actor Ablage {
 
     func ordner(board: Int = 1) -> [Ordner] {
         db.lies("""
-            SELECT id,name,x,y,breite,hoehe,eingeklappt,farbe,farbhex FROM ordner
+            SELECT id,name,x,y,breite,hoehe,eingeklappt,farbe,farbhex,symbol FROM ordner
             WHERE board_id=? ORDER BY id
         """, [.ganz(board)]) { z in
             Ordner(id: z.ganz(0), name: z.text(1), x: z.komma(2), y: z.komma(3),
                    breite: z.komma(4), hoehe: z.komma(5), eingeklappt: z.ganz(6) == 1,
-                   farbe: z.ganz(7), farbhex: z.textOpt(8))
+                   farbe: z.ganz(7), farbhex: z.textOpt(8), symbol: z.text(9))
         }
     }
 
@@ -389,18 +411,21 @@ actor Ablage {
         db.schreibe("UPDATE ordner SET farbhex=? WHERE id=?",
                     [hex.map { Datenbank.Wert.text($0) } ?? .leer, .ganz(id)])
     }
+    func setzeOrdnerSymbol(_ id: Int, _ symbol: String) {
+        db.schreibe("UPDATE ordner SET symbol=? WHERE id=?", [.text(symbol), .ganz(id)])
+    }
 
     // MARK: Notizen (Textfelder)
 
     func notizen(board: Int = 1) -> [Notiz] {
         db.lies("""
-            SELECT id,text,x,y,breite,hoehe,groesse,farbe,stil,farbhex,ordner_id,zettel FROM notiz
+            SELECT id,text,x,y,breite,hoehe,groesse,farbe,stil,farbhex,ordner_id,zettel,symbol FROM notiz
             WHERE board_id=? ORDER BY id
         """, [.ganz(board)]) { z in
             Notiz(id: z.ganz(0), text: z.text(1), x: z.komma(2), y: z.komma(3),
                   breite: z.komma(4), hoehe: z.komma(5), groesse: z.komma(6),
                   farbe: z.ganz(7), stil: z.ganz(8), farbhex: z.textOpt(9),
-                  ordnerID: z.ganzOpt(10), zettel: z.ganz(11) == 1)
+                  ordnerID: z.ganzOpt(10), zettel: z.ganz(11) == 1, symbol: z.text(12))
         }
     }
 
@@ -430,6 +455,9 @@ actor Ablage {
     func setzeNotizFarbhex(_ id: Int, _ hex: String?) {
         db.schreibe("UPDATE notiz SET farbhex=? WHERE id=?",
                     [hex.map { Datenbank.Wert.text($0) } ?? .leer, .ganz(id)])
+    }
+    func setzeNotizSymbol(_ id: Int, _ symbol: String) {
+        db.schreibe("UPDATE notiz SET symbol=? WHERE id=?", [.text(symbol), .ganz(id)])
     }
 
     func setzeNotizText(_ id: Int, _ text: String) {
@@ -507,10 +535,10 @@ actor Ablage {
             for o in ordner {
                 db.schreibe("INSERT OR IGNORE INTO ordner(id,board_id,name) VALUES(?,?,?)",
                             [.ganz(o.id), .ganz(board), .text(o.name)])
-                db.schreibe("UPDATE ordner SET name=?,x=?,y=?,breite=?,hoehe=?,eingeklappt=?,farbe=?,farbhex=? WHERE id=?",
+                db.schreibe("UPDATE ordner SET name=?,x=?,y=?,breite=?,hoehe=?,eingeklappt=?,farbe=?,farbhex=?,symbol=? WHERE id=?",
                             [.text(o.name), .komma(o.x), .komma(o.y), .komma(o.breite), .komma(o.hoehe),
                              .ganz(o.eingeklappt ? 1 : 0), .ganz(o.farbe),
-                             o.farbhex.map { Datenbank.Wert.text($0) } ?? .leer, .ganz(o.id)])
+                             o.farbhex.map { Datenbank.Wert.text($0) } ?? .leer, .text(o.symbol), .ganz(o.id)])
             }
 
             loescheFehlende("eintrag", board: board, ids: eintraege.map { $0.id })
@@ -518,7 +546,7 @@ actor Ablage {
                 db.schreibe("INSERT OR IGNORE INTO eintrag(id,board_id,pfad,name,endung,kategorie) VALUES(?,?,?,?,?,?)",
                             [.ganz(e.id), .ganz(board), .text(e.pfad), .text(e.name), .text(e.endung), .text(e.kategorie.rawValue)])
                 db.schreibe("""
-                    UPDATE eintrag SET pfad=?,name=?,endung=?,kategorie=?,groesse=?,x=?,y=?,breite=?,hoehe=?,vorschau=?,idml_quelle=?,zustand=?,ordner_id=?,kommentar=?,tags=?,lesezeichen=? WHERE id=?
+                    UPDATE eintrag SET pfad=?,name=?,endung=?,kategorie=?,groesse=?,x=?,y=?,breite=?,hoehe=?,vorschau=?,idml_quelle=?,zustand=?,ordner_id=?,kommentar=?,tags=?,lesezeichen=?,farbe=?,farbhex=?,symbol=? WHERE id=?
                 """, [.text(e.pfad), .text(e.name), .text(e.endung), .text(e.kategorie.rawValue),
                       .ganz(e.groesse), .komma(e.x), .komma(e.y), .komma(e.breite), .komma(e.hoehe),
                       e.vorschau.map { Datenbank.Wert.text($0) } ?? .leer,
@@ -528,6 +556,9 @@ actor Ablage {
                       .text(e.kommentar),
                       .text(e.tags),
                       e.lesezeichen.map { Datenbank.Wert.text($0) } ?? .leer,
+                      .ganz(e.farbe),
+                      e.farbhex.map { Datenbank.Wert.text($0) } ?? .leer,
+                      .text(e.symbol),
                       .ganz(e.id)])
             }
             db.schreibe("DELETE FROM volltext WHERE rowid NOT IN (SELECT id FROM eintrag)")
@@ -536,12 +567,12 @@ actor Ablage {
             for n in notizen {
                 db.schreibe("INSERT OR IGNORE INTO notiz(id,board_id) VALUES(?,?)", [.ganz(n.id), .ganz(board)])
                 db.schreibe("""
-                    UPDATE notiz SET text=?,x=?,y=?,breite=?,hoehe=?,groesse=?,farbe=?,stil=?,farbhex=?,ordner_id=?,zettel=? WHERE id=?
+                    UPDATE notiz SET text=?,x=?,y=?,breite=?,hoehe=?,groesse=?,farbe=?,stil=?,farbhex=?,ordner_id=?,zettel=?,symbol=? WHERE id=?
                 """, [.text(n.text), .komma(n.x), .komma(n.y), .komma(n.breite), .komma(n.hoehe),
                       .komma(n.groesse), .ganz(n.farbe), .ganz(n.stil),
                       n.farbhex.map { Datenbank.Wert.text($0) } ?? .leer,
                       n.ordnerID.map { Datenbank.Wert.ganz($0) } ?? .leer,
-                      .ganz(n.zettel ? 1 : 0), .ganz(n.id)])
+                      .ganz(n.zettel ? 1 : 0), .text(n.symbol), .ganz(n.id)])
             }
 
             loescheFehlende("verbindung", board: board, ids: verbindungen.map { $0.id })
@@ -657,25 +688,28 @@ actor Ablage {
 
             for o in ordner(board: quelle) {
                 db.schreibe("""
-                    INSERT INTO ordner(board_id,name,x,y,breite,hoehe,eingeklappt,farbe,farbhex,erstellt)
-                    VALUES(?,?,?,?,?,?,?,?,?,?)
+                    INSERT INTO ordner(board_id,name,x,y,breite,hoehe,eingeklappt,farbe,farbhex,symbol,erstellt)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?)
                 """, [.ganz(neu), .text(o.name), .komma(o.x), .komma(o.y), .komma(o.breite), .komma(o.hoehe),
                       .ganz(o.eingeklappt ? 1 : 0), .ganz(o.farbe),
-                      o.farbhex.map { Datenbank.Wert.text($0) } ?? .leer, .komma(jetzt)])
+                      o.farbhex.map { Datenbank.Wert.text($0) } ?? .leer, .text(o.symbol), .komma(jetzt)])
                 ordnerMap[o.id] = db.letzteID
             }
 
             for e in eintraege(board: quelle) {
                 db.schreibe("""
-                    INSERT INTO eintrag(board_id,pfad,name,endung,kategorie,groesse,erstellt,x,y,breite,hoehe,vorschau,idml_quelle,zustand,ordner_id,kommentar,tags,lesezeichen)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    INSERT INTO eintrag(board_id,pfad,name,endung,kategorie,groesse,erstellt,x,y,breite,hoehe,vorschau,idml_quelle,zustand,ordner_id,kommentar,tags,lesezeichen,farbe,farbhex,symbol)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, [.ganz(neu), .text(e.pfad), .text(e.name), .text(e.endung), .text(e.kategorie.rawValue),
                       .ganz(e.groesse), .komma(jetzt), .komma(e.x), .komma(e.y), .komma(e.breite), .komma(e.hoehe),
                       e.vorschau.map { Datenbank.Wert.text($0) } ?? .leer,
                       e.idmlQuelle.map { Datenbank.Wert.text($0) } ?? .leer, .text(e.zustand),
                       e.ordnerID.flatMap { ordnerMap[$0] }.map { Datenbank.Wert.ganz($0) } ?? .leer,
                       .text(e.kommentar), .text(e.tags),
-                      e.lesezeichen.map { Datenbank.Wert.text($0) } ?? .leer])
+                      e.lesezeichen.map { Datenbank.Wert.text($0) } ?? .leer,
+                      .ganz(e.farbe),
+                      e.farbhex.map { Datenbank.Wert.text($0) } ?? .leer,
+                      .text(e.symbol)])
                 let neuId = db.letzteID
                 eintragMap[e.id] = neuId
                 let vt = db.lies("SELECT name,inhalt FROM volltext WHERE rowid=?", [.ganz(e.id)]) {
@@ -689,13 +723,13 @@ actor Ablage {
 
             for n in notizen(board: quelle) {
                 db.schreibe("""
-                    INSERT INTO notiz(board_id,text,x,y,breite,hoehe,groesse,farbe,stil,farbhex,ordner_id,zettel,erstellt)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    INSERT INTO notiz(board_id,text,x,y,breite,hoehe,groesse,farbe,stil,farbhex,ordner_id,zettel,symbol,erstellt)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, [.ganz(neu), .text(n.text), .komma(n.x), .komma(n.y), .komma(n.breite), .komma(n.hoehe),
                       .komma(n.groesse), .ganz(n.farbe), .ganz(n.stil),
                       n.farbhex.map { Datenbank.Wert.text($0) } ?? .leer,
                       n.ordnerID.flatMap { ordnerMap[$0] }.map { Datenbank.Wert.ganz($0) } ?? .leer,
-                      .ganz(n.zettel ? 1 : 0), .komma(jetzt)])
+                      .ganz(n.zettel ? 1 : 0), .text(n.symbol), .komma(jetzt)])
                 notizMap[n.id] = db.letzteID
             }
 

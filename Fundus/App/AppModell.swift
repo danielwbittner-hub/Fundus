@@ -29,6 +29,7 @@ final class AppModell: ObservableObject {
 
     @Published var suchtext = "" { didSet { sucheAnstossen() } }
     @Published var trefferIDs: Set<Int>? = nil
+    @Published var symbolFilter: String? = nil   // nur Objekte mit diesem Symbol zeigen
 
     // ⌘K-Schnellsuche über alle Leinwände
     @Published var zeigePalette = false
@@ -1605,9 +1606,20 @@ final class AppModell: ObservableObject {
     }
 
     func passt(_ e: Eintrag) -> Bool {
+        if let s = symbolFilter, e.symbol != s { return false }
         guard let treffer = trefferIDs else { return true }
         return treffer.contains(e.id)
     }
+    /// Notizen/Mappen kennt die Volltextsuche nicht – sie reagieren nur auf den Symbolfilter.
+    func passtN(_ n: Notiz) -> Bool { symbolFilter == nil || n.symbol == symbolFilter }
+    func passtO(_ o: Ordner) -> Bool { symbolFilter == nil || o.symbol == symbolFilter }
+
+    /// Nach einem Symbol filtern (Klick aufs Abzeichen): gleiches Symbol → aus.
+    func filtereNachSymbol(_ symbol: String) {
+        guard !symbol.isEmpty else { return }
+        symbolFilter = (symbolFilter == symbol) ? nil : symbol
+    }
+    func symbolFilterAus() { symbolFilter = nil }
 
     // MARK: Schnellsuche (⌘K) über alle Leinwände
 
@@ -1668,6 +1680,35 @@ final class AppModell: ObservableObject {
 
     /// Setzt den Suchfilter auf ein Schlagwort (Klick auf einen Tag-Chip).
     func filtereNachTag(_ tag: String) { suchtext = tag }
+
+    /// Akzentfarbe einer Karte (v. a. Web-Links) setzen – eigener Hex-Wert.
+    func setzeKarteFarbhex(_ id: Int, _ hex: String?) {
+        guard let ablage else { return }
+        merke()
+        if let i = eintraege.firstIndex(where: { $0.id == id }) { eintraege[i].farbhex = hex }
+        Task { await ablage.setzeFarbhex(id, hex) }
+    }
+
+    // MARK: Symbole (Katalog) – auf Karten, Notizen und Mappen
+
+    func setzeKarteSymbol(_ id: Int, _ symbol: String) {
+        guard let ablage else { return }
+        merke()
+        if let i = eintraege.firstIndex(where: { $0.id == id }) { eintraege[i].symbol = symbol }
+        Task { await ablage.setzeSymbol(id, symbol) }
+    }
+    func setzeNotizSymbol(_ id: Int, _ symbol: String) {
+        guard let ablage else { return }
+        merke()
+        if let i = notizen.firstIndex(where: { $0.id == id }) { notizen[i].symbol = symbol }
+        Task { await ablage.setzeNotizSymbol(id, symbol) }
+    }
+    func setzeOrdnerSymbol(_ id: Int, _ symbol: String) {
+        guard let ablage else { return }
+        merke()
+        if let i = ordnerListe.firstIndex(where: { $0.id == id }) { ordnerListe[i].symbol = symbol }
+        Task { await ablage.setzeOrdnerSymbol(id, symbol) }
+    }
 
     // MARK: Übergeordnete Rahmen / Bereiche
 
