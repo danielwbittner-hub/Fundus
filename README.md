@@ -83,6 +83,12 @@ Der Befehl entfernt nur das „aus dem Internet geladen"-Attribut; an der App se
 Ohne Terminal lässt sich das nur umgehen, indem die App von Apple notarisiert wird – das setzt einen
 (kostenpflichtigen) Apple-Developer-Account voraus.
 
+**Mac mit mehreren Benutzern (Standard- statt Admin-Konto):** Eine nicht notarisierte App muss
+einmalig von einem **Administrator** freigegeben werden. Unter einem Standard-Konto startet Fundus
+sonst nicht (das Icon „hüpft" ohne Meldung, weil die nötige Admin-Rückfrage dort nicht erscheint).
+Abhilfe: Fundus **einmal mit einem Admin-Konto öffnen** (oder der Admin führt den obigen
+`xattr`-Befehl aus) – danach starten es auch Standard-Benutzer normal.
+
 ---
 
 ## Aus dem Quellcode bauen
