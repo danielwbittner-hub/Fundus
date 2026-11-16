@@ -23,8 +23,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "0.1"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.1"
+    CURRENT_PROJECT_VERSION: "2"
     CODE_SIGN_STYLE: Automatic
     # „Daniel Bittner (Personal Team)" – dieselbe kostenlose Apple-ID wie bei
     # Tafel/KanbanMac. Andere Apple-ID: hier eintragen und xcodegen laufen lassen.
@@ -45,6 +45,9 @@ targets:
         # bleibt „Fundus.app" (PRODUCT_NAME), nur der angezeigte Name ändert sich.
         CFBundleName: FUNDUS
         CFBundleDisplayName: FUNDUS
+        # Version (sonst setzt XcodeGen die generierte Info.plist auf 1.0).
+        CFBundleShortVersionString: "1.1"
+        CFBundleVersion: "2"
         # Deutsch als Haupt-/Entwicklungssprache → Systemmenüs auf Deutsch.
         CFBundleDevelopmentRegion: de
         CFBundleLocalizations: [de, en]

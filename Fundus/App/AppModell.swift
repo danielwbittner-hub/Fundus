@@ -151,6 +151,18 @@ final class AppModell: ObservableObject {
         await oeffne(ort: ort)
     }
 
+    /// Neue Sammlung: den gewählten Ordner (am Ablageort mit gewähltem Namen) erst
+    /// anlegen, dann die Datenbank darin öffnen.
+    func legeNeueDatenbankAn(_ ort: URL) async {
+        do {
+            try FileManager.default.createDirectory(at: ort, withIntermediateDirectories: true)
+        } catch {
+            fehler = "Ordner ließ sich nicht anlegen: \(error.localizedDescription)"
+            return
+        }
+        await waehleOrt(ort)
+    }
+
     private func oeffne(ort: URL) async {
         do {
             let db = ort.appendingPathComponent("Fundus.db")

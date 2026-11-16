@@ -947,14 +947,30 @@ struct BereichsZeile: View {
 
 /// Zentrale Helfer für die Ordner-/Datei-Auswahl (NSOpenPanel).
 enum Dateiauswahl {
+    /// Eine neue Sammlung anlegen: Ort + Name wählen – Fundus legt DORT einen
+    /// eigenen Ordner an und packt die Datenbank hinein (statt die Dateien in
+    /// einen fremden Ordner zu streuen).
+    static func neueDatenbank() -> URL? {
+        let panel = NSSavePanel()
+        panel.canCreateDirectories = true
+        panel.title = "Neue Fundus-Sammlung anlegen"
+        panel.prompt = "Anlegen"
+        panel.nameFieldLabel = "Name der Sammlung:"
+        panel.nameFieldStringValue = "Fundus-Sammlung"
+        panel.message = "Ort und Namen wählen – Fundus legt dort einen eigenen Ordner mit der "
+            + "Datenbank an. Gern in einer Cloud (Nextcloud, iCloud …), damit die Sammlung eine "
+            + "Neuinstallation übersteht."
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+
+    /// Eine bestehende Sammlung öffnen: den Ordner wählen, der bereits `Fundus.db` enthält.
     static func ordner() -> URL? {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.prompt = "Hier ablegen"
-        panel.message = "Ordner für die Fundus-Datenbank wählen – z. B. in der Nextcloud, "
-            + "damit sie eine Neuinstallation übersteht."
+        panel.prompt = "Öffnen"
+        panel.message = "Den Ordner einer bestehenden Fundus-Sammlung wählen (enthält „Fundus.db“)."
         return panel.runModal() == .OK ? panel.url : nil
     }
 

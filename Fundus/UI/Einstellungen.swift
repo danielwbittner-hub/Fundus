@@ -24,9 +24,9 @@ struct OnboardingView: View {
                     .frame(maxWidth: 430)
 
                 Button {
-                    if let u = Dateiauswahl.ordner() { Task { await app.waehleOrt(u) } }
+                    if let u = Dateiauswahl.neueDatenbank() { Task { await app.legeNeueDatenbankAn(u) } }
                 } label: {
-                    Label("Datenbank-Ordner wählen …", systemImage: "folder.badge.plus")
+                    Label("Neue Sammlung anlegen …", systemImage: "folder.badge.plus")
                         .font(Design.grotesk(13, gewicht: .semibold))
                         .padding(.horizontal, 14).padding(.vertical, 8)
                 }
@@ -35,9 +35,19 @@ struct OnboardingView: View {
                 .background(Design.neon, in: Capsule())
                 .shadow(color: Design.neonViolett.opacity(0.5), radius: 14, y: 4)
 
-                Text("Tipp: einen Ordner in der Nextcloud wählen – dann übersteht die Sammlung "
-                     + "eine Neuinstallation.")
+                Button {
+                    if let u = Dateiauswahl.ordner() { Task { await app.waehleOrt(u) } }
+                } label: {
+                    Text("… oder eine bestehende Sammlung öffnen")
+                        .font(Design.grotesk(12)).foregroundStyle(.white.opacity(0.75))
+                        .underline()
+                }
+                .buttonStyle(.plain)
+
+                Text("Tipp: den Ort in der Nextcloud wählen – dann übersteht die Sammlung "
+                     + "eine Neuinstallation. Fundus legt für eine neue Sammlung einen eigenen Ordner an.")
                     .font(Design.grotesk(11)).foregroundStyle(.white.opacity(0.5))
+                    .multilineTextAlignment(.center).frame(maxWidth: 440)
 
                 if let f = app.fehler {
                     Text(f).font(Design.grotesk(11)).foregroundStyle(Design.neonFuchsia)
@@ -61,9 +71,16 @@ struct EinstellungenView: View {
                         .font(Design.grotesk(11)).foregroundStyle(Design.gedaempft)
                         .lineLimit(1).truncationMode(.middle)
                 }
-                Button("Ordner wechseln …") {
-                    if let u = Dateiauswahl.ordner() { Task { await app.waehleOrt(u) } }
+                HStack {
+                    Button("Neue Sammlung anlegen …") {
+                        if let u = Dateiauswahl.neueDatenbank() { Task { await app.legeNeueDatenbankAn(u) } }
+                    }
+                    Button("Vorhandene öffnen …") {
+                        if let u = Dateiauswahl.ordner() { Task { await app.waehleOrt(u) } }
+                    }
                 }
+                Text("„Neue Sammlung“ legt am gewählten Ort einen eigenen Ordner mit der Datenbank an.")
+                    .font(Design.grotesk(11)).foregroundStyle(Design.gedaempft)
             }
             Section("Darstellung") {
                 Picker("Erscheinungsbild", selection: Binding(
