@@ -148,6 +148,9 @@ struct LeinwandView: View {
                 .scaleEffect(app.zoom, anchor: .topLeading)
                 .offset(app.schwenk)
 
+                // Andock-Hilfslinien (über den Objekten, in Bildschirmkoordinaten)
+                HilfslinienCanvas()
+
                 // Markier-Rechteck
                 if let r = markierRahmen {
                     Rectangle().fill(Design.neonCyan.opacity(0.12))
@@ -531,13 +534,16 @@ struct KarteAnsicht: View {
                         if app.optionAktiv { app.dupliziereKarteAnOrt(e.id) }   // ⌥ → Kopie bleibt zurück
                         app.einzelAuswahl(.karte(e.id))
                     }
-                    let nx = s.x + g.translation.width / app.zoom
-                    let ny = s.y + g.translation.height / app.zoom
-                    app.verschiebe(e.id, x: nx, y: ny)
-                    app.aktualisiereZiel(CGPoint(x: nx + e.breite / 2, y: ny + e.hoehe / 2))
+                    let roh = CGPoint(x: s.x + g.translation.width / app.zoom,
+                                      y: s.y + g.translation.height / app.zoom)
+                    let p = app.andockPunkt(.karte(e.id), roh: roh,
+                                            groesse: CGSize(width: e.breite, height: e.hoehe))
+                    app.verschiebe(e.id, x: p.x, y: p.y)
+                    app.aktualisiereZiel(CGPoint(x: p.x + e.breite / 2, y: p.y + e.hoehe / 2))
                 }
             }
             .onEnded { _ in
+                app.loescheHilfslinien()
                 if letzteTrans != .zero { letzteTrans = .zero; app.sichereMarkierung() }
                 else { start = nil; app.sichereKarte(e.id) }
             }
@@ -1051,13 +1057,16 @@ struct NotizAnsicht: View {
                         if app.optionAktiv { app.dupliziereNotizAnOrt(n.id) }   // ⌥ → Kopie bleibt zurück
                         app.einzelAuswahl(.notiz(n.id))
                     }
-                    let nx = s.x + g.translation.width / app.zoom
-                    let ny = s.y + g.translation.height / app.zoom
-                    app.verschiebeNotiz(n.id, x: nx, y: ny)
-                    app.aktualisiereZiel(CGPoint(x: nx + n.breite / 2, y: ny + n.hoehe / 2))
+                    let roh = CGPoint(x: s.x + g.translation.width / app.zoom,
+                                      y: s.y + g.translation.height / app.zoom)
+                    let p = app.andockPunkt(.notiz(n.id), roh: roh,
+                                            groesse: CGSize(width: n.breite, height: n.hoehe))
+                    app.verschiebeNotiz(n.id, x: p.x, y: p.y)
+                    app.aktualisiereZiel(CGPoint(x: p.x + n.breite / 2, y: p.y + n.hoehe / 2))
                 }
             }
             .onEnded { _ in
+                app.loescheHilfslinien()
                 if letzteTrans != .zero { letzteTrans = .zero; app.sichereMarkierung() }
                 else { start = nil; app.sichereNotizRahmen(n.id) }
             }
@@ -1113,6 +1122,32 @@ struct VerbindungenCanvas: View {
                 spitze.addLine(to: CGPoint(x: basis.x - nx * halbBreite, y: basis.y - ny * halbBreite))
                 spitze.closeSubpath()
                 ctx.fill(spitze, with: .color(Design.neonCyan.opacity(0.92)))
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+/// Zeichnet die Andock-Hilfslinien in Bildschirmkoordinaten (scharf bei jedem Zoom).
+struct HilfslinienCanvas: View {
+    @EnvironmentObject var app: AppModell
+
+    var body: some View {
+        Canvas { ctx, _ in
+            let z = app.zoom, sx = app.schwenk.width, sy = app.schwenk.height
+            for l in app.hilfslinien {
+                var p = Path()
+                if l.vertikal {
+                    let x = l.wert * z + sx
+                    p.move(to: CGPoint(x: x, y: l.von * z + sy))
+                    p.addLine(to: CGPoint(x: x, y: l.bis * z + sy))
+                } else {
+                    let y = l.wert * z + sy
+                    p.move(to: CGPoint(x: l.von * z + sx, y: y))
+                    p.addLine(to: CGPoint(x: l.bis * z + sx, y: y))
+                }
+                ctx.stroke(p, with: .color(Design.neonFuchsia.opacity(0.95)),
+                           style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
         }
         .allowsHitTesting(false)

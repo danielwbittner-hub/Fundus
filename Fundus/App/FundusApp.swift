@@ -161,12 +161,30 @@ struct HauptAnsicht: View {
                 MainActor.assumeIsolated { app.optionAktiv = opt }
                 return ev
             }
-            if ev.type == .scrollWheel {             // ⌘+Scroll → Zoom zum Mauszeiger
-                guard ev.modifierFlags.contains(.command) else { return ev }
-                let d = ev.scrollingDeltaY
-                guard d != 0 else { return nil }
-                let schritt = d * (ev.hasPreciseScrollingDeltas ? 0.004 : 0.03)
-                MainActor.assumeIsolated { app.zoomAnPunkt(exp(schritt), punkt: app.mausPunkt) }
+            if ev.type == .scrollWheel {
+                if ev.modifierFlags.contains(.command) {   // ⌘+Scroll → Zoom zum Mauszeiger
+                    let d = ev.scrollingDeltaY
+                    guard d != 0 else { return nil }
+                    let schritt = d * (ev.hasPreciseScrollingDeltas ? 0.004 : 0.03)
+                    MainActor.assumeIsolated { app.zoomAnPunkt(exp(schritt), punkt: app.mausPunkt) }
+                    return nil
+                }
+                // Zwei-Finger-Wischen (oder Mausrad) → Leinwand schwenken.
+                let dx = ev.scrollingDeltaX, dy = ev.scrollingDeltaY
+                if dx == 0, dy == 0 { return ev }
+                var schwenken = false
+                MainActor.assumeIsolated {
+                    let overlay = app.zeigePalette || app.zeigeKuerzel || app.zeigeHilfe
+                        || app.zeigeGesundheit || app.zeigeReparatur || app.linkSheet || app.zeigeHaftung
+                    let imText = NSApp.keyWindow?.firstResponder is NSText
+                    // Oberer Streifen (Reiter/Suche) bleibt zum Scrollen frei.
+                    var imOben = false
+                    if let h = NSApp.keyWindow?.frame.height { imOben = (h - ev.locationInWindow.y) < 130 }
+                    schwenken = app.bereit && !overlay && !imText && !imOben
+                }
+                guard schwenken else { return ev }
+                let f = ev.hasPreciseScrollingDeltas ? 1.0 : 16.0
+                MainActor.assumeIsolated { app.schwenkeUm(dx: dx * f, dy: dy * f) }
                 return nil
             }
             // Leertaste loslassen: Schwenk-Modus beenden; war es nur ein Tippen (kein
@@ -521,6 +539,12 @@ struct Kopfleiste: View {
                 }
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 .help("Leinwand exportieren / teilen")
+                Button { app.andocken.toggle() } label: {
+                    Image(systemName: app.andocken ? "magnet.fill" : "magnet").frame(width: 28, height: 26)
+                        .foregroundStyle(app.andocken ? AnyShapeStyle(Design.neonCyan)
+                                                       : AnyShapeStyle(Design.paneelInhalt))
+                }.help(app.andocken ? "Andocken/Ausrichten: an (Klick schaltet aus)"
+                                    : "Andocken/Ausrichten: aus (Klick schaltet ein)")
                 Button { app.wechsleErscheinung() } label: {
                     Image(systemName: app.istDunkel ? "sun.max" : "moon").frame(width: 28, height: 26)
                 }.help(app.istDunkel ? "Heller Modus" : "Dunkler Modus")
@@ -1149,9 +1173,9 @@ struct HilfeAnsicht: View {
                         + "(Finder-Rechtsklick → Dienste). Fundus verweist nur auf den Ort – das "
                         + "Original bleibt, wo es ist.")
                     hilfe("hand.draw", "Bewegen & Zoomen",
-                          "Leertaste halten und ziehen schwenkt die Leinwand; ⌘ + Scrollrad zoomt. "
-                        + "Objekte zieht man direkt mit der Maus. ⌥ (Option) halten und ziehen legt "
-                        + "eine Kopie an.")
+                          "Mit zwei Fingern auf dem Trackpad wischen schwenkt die Leinwand – ebenso "
+                        + "Leertaste halten und ziehen. ⌘ + Scrollrad/Wischen zoomt. Objekte zieht man "
+                        + "direkt mit der Maus; ⌥ (Option) halten und ziehen legt eine Kopie an.")
                     hilfe("folder", "Mappen & Bereiche",
                           "Eine Mappe (Werkzeugleiste oder ⌘⇧O) gruppiert Karten – beim Verschieben "
                         + "wandert der Inhalt mit, ein-/ausklappbar. Ein Bereich (⌘⇧B) rahmt größere "
@@ -1168,6 +1192,10 @@ struct HilfeAnsicht: View {
                           "Ein ausgewähltes Objekt lässt sich mit Schlagworten und einem Symbol "
                         + "versehen (Leiste oben). Ein Klick auf ein Symbol oder Schlagwort filtert "
                         + "die Leinwand danach.")
+                    hilfe("magnet", "Andocken & Ausrichten",
+                          "Beim Ziehen rasten Karten an Kanten und Mitten anderer Objekte ein; "
+                        + "rosa Hilfslinien zeigen die Ausrichtung. Der Magnet-Knopf oben rechts "
+                        + "schaltet das Andocken an und aus.")
                     hilfe("link", "Verbinden",
                           "Mit „Verbinden“ (⌘U) zwei Objekte nacheinander anklicken – eine "
                         + "beschriftbare Linie entsteht. Esc beendet den Modus.")

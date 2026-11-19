@@ -175,6 +175,14 @@ struct Rahmen: Identifiable, Equatable {
     var reihenfolge: Int
 }
 
+/// Eine Hilfslinie beim Andocken/Ausrichten (Smart Guide), in Leinwand-Koordinaten.
+struct Hilfslinie: Equatable {
+    var vertikal: Bool   // true = senkrechte Linie (X-Ausrichtung)
+    var wert: Double     // X (bei vertikal) bzw. Y (bei waagerecht)
+    var von: Double      // Anfang auf der jeweils anderen Achse
+    var bis: Double      // Ende auf der jeweils anderen Achse
+}
+
 /// Formatierungsbefehl für den Notiz-Editor (Markdown-basiert).
 enum NotizFormat: Equatable {
     case fett        // **…**

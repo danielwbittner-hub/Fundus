@@ -86,6 +86,69 @@ final class AppModell: ObservableObject {
         didSet { UserDefaults.standard.set(zeigeMiniKarte, forKey: "zeigeMiniKarte") }
     }
 
+    // Andocken / Ausrichten (Smart Guides)
+    @Published var andocken: Bool = UserDefaults.standard.object(forKey: "andocken") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(andocken, forKey: "andocken") }
+    }
+    @Published var hilfslinien: [Hilfslinie] = []
+
+    /// Rastet den Ursprung eines gezogenen Objekts an Kanten/Mitten anderer
+    /// Objekte ein (Andocken) und meldet die passenden Hilfslinien. Ist Andocken
+    /// aus, bleibt die Rohposition erhalten.
+    func andockPunkt(_ a: Auswahl, roh: CGPoint, groesse g: CGSize) -> CGPoint {
+        guard andocken else { if !hilfslinien.isEmpty { hilfslinien = [] }; return roh }
+        let t = 7.0 / max(zoom, 0.01)          // Fangreichweite ~7px auf dem Bildschirm
+        let w = g.width, h = g.height
+        var rects: [CGRect] = []
+        for e in eintraege where Auswahl.karte(e.id) != a && !istVerborgen(e) {
+            rects.append(CGRect(x: e.x, y: e.y, width: e.breite, height: e.hoehe))
+        }
+        for n in notizen where Auswahl.notiz(n.id) != a && !istVerborgenN(n) {
+            rects.append(CGRect(x: n.x, y: n.y, width: n.breite, height: n.hoehe))
+        }
+        for o in ordnerListe where Auswahl.ordner(o.id) != a {
+            rects.append(CGRect(x: o.x, y: o.y, width: o.breite, height: o.eingeklappt ? 46 : o.hoehe))
+        }
+        for r in rahmenListe {
+            rects.append(CGRect(x: r.x, y: r.y, width: r.breite, height: r.hoehe))
+        }
+
+        var nx = roh.x, ny = roh.y
+        var linien: [Hilfslinie] = []
+
+        // X: linke Kante (an minX/maxX), Mitte (midX), rechte Kante (an maxX/minX)
+        var bestX: (d: Double, nx: Double, ziel: Double, o: CGRect)?
+        for o in rects {
+            for (off, ziel) in [(0.0, o.minX), (0.0, o.maxX), (w/2, o.midX), (w, o.maxX), (w, o.minX)] {
+                let d = abs((roh.x + off) - ziel)
+                if d <= t, bestX == nil || d < bestX!.d { bestX = (d, ziel - off, ziel, o) }
+            }
+        }
+        if let b = bestX {
+            nx = b.nx
+            let m = CGRect(x: nx, y: roh.y, width: w, height: h)
+            linien.append(Hilfslinie(vertikal: true, wert: b.ziel,
+                                     von: min(m.minY, b.o.minY), bis: max(m.maxY, b.o.maxY)))
+        }
+        var bestY: (d: Double, ny: Double, ziel: Double, o: CGRect)?
+        for o in rects {
+            for (off, ziel) in [(0.0, o.minY), (0.0, o.maxY), (h/2, o.midY), (h, o.maxY), (h, o.minY)] {
+                let d = abs((roh.y + off) - ziel)
+                if d <= t, bestY == nil || d < bestY!.d { bestY = (d, ziel - off, ziel, o) }
+            }
+        }
+        if let b = bestY {
+            ny = b.ny
+            let m = CGRect(x: nx, y: ny, width: w, height: h)
+            linien.append(Hilfslinie(vertikal: false, wert: b.ziel,
+                                     von: min(m.minX, b.o.minX), bis: max(m.maxX, b.o.maxX)))
+        }
+        if hilfslinien != linien { hilfslinien = linien }
+        return CGPoint(x: nx, y: ny)
+    }
+
+    func loescheHilfslinien() { if !hilfslinien.isEmpty { hilfslinien = [] } }
+
     // MARK: Schriftgrößen (individuell einstellbar, in Einstellungen)
 
     /// Default aus UserDefaults lesen (0 = nicht gesetzt → Standardwert).
@@ -1978,6 +2041,13 @@ final class AppModell: ObservableObject {
         sichereKamera()
     }
     func zoomZuruecksetzen() { zoom = 1; schwenk = .zero; sichereKamera() }
+
+    /// Leinwand um einen Betrag schwenken (Zwei-Finger-Wischen auf dem Trackpad).
+    /// Die Leinwand folgt den Fingern (wie beim Ziehen mit gehaltener Leertaste).
+    func schwenkeUm(dx: Double, dy: Double) {
+        schwenk = CGSize(width: schwenk.width + dx, height: schwenk.height + dy)
+        sichereKameraVerzoegert()
+    }
 
     /// Kamera so schwenken, dass ein Leinwandpunkt in die Bildschirmmitte rückt
     /// (für die Mini-Karte).
